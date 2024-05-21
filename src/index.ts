@@ -16,7 +16,7 @@ mongoose.set("strictQuery", false);
 require("dotenv").config();
 //const uuid = uuidv4();
 const jwt = require("jsonwebtoken");
-const User = require("./models/user");
+const User = require("./models/User");
 const MONGODB_URI = process.env.MONGODB_URI;
 const resolvers = require("./resolver");
 const typeDefs = require("./schema");

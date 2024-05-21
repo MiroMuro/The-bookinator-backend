@@ -1,8 +1,8 @@
 const { GraphQLError } = require("graphql");
 const { PubSub } = require("graphql-subscriptions");
-const BookMongo = require("./models/book");
-const AuthorMongo = require("./models/author");
-const Account = require("./models/user");
+const BookMongo = require("./models/Book");
+const AuthorMongo = require("./models/Author");
+const Account = require("./models/User");
 const bcrypt = require("bcrypt");
 const pubsub = new PubSub();
 const jsonwebtoken = require("jsonwebtoken");
