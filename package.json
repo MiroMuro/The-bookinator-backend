@@ -6,7 +6,8 @@
   "scripts": {
     "ts-node": "ts-node",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npm run ts-node index.ts"
+    "start": "npm run ts-node index.ts",
+    "build": "tsc"
   },
   "author": "",
   "license": "ISC",

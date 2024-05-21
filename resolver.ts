@@ -59,9 +59,9 @@ const resolver = {
       return await BookMongo.find({});
     },
     allAuthors: async () => {
-      const xd = await AuthorMongo.find().populate("bookCount");
-      console.log(xd);
-      return xd;
+      const allAuthors = await AuthorMongo.find().populate("bookCount");
+
+      return allAuthors;
     },
     allGenres: async () => await BookMongo.distinct("genres"),
   },
