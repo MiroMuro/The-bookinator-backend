@@ -1,6 +1,4 @@
 const { ApolloServer } = require("@apollo/server");
-//const { startStandaloneServer } = require("@apollo/server/standalone");
-//const { v4: uuidv4 } = require("uuid");
 const { expressMiddleware } = require("@apollo/server/express4");
 const {
   ApolloServerPluginDrainHttpServer,
@@ -14,13 +12,12 @@ const http = require("http");
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
 require("dotenv").config();
-//const uuid = uuidv4();
 const jwt = require("jsonwebtoken");
-const User = require("./models/user");
+const User = require("./models/user.js");
 const MONGODB_URI = process.env.MONGODB_URI;
 const resolvers = require("./resolver");
 const typeDefs = require("./schema");
-console.log("Connecting to MongoDB, URI: ", MONGODB_URI);
+
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
@@ -61,24 +58,29 @@ const start = async () => {
   await server.start();
   app.use(
     "/",
-    cors(),
+    cors({
+      origin: true,
+    }),
     express.json(),
     expressMiddleware(server, {
       context: async ({ req, _res }: { req: any; _res: unknown }) => {
         _res;
         const auth = req ? req.headers.authorization : null;
+
         if (auth && auth.startsWith("bearer ")) {
           const decodedToken = jwt.verify(
             auth.substring(7),
             process.env.JWT_SECRET
           );
+
           const currentUser = await User.findById(decodedToken.id);
+          console.log("currentUser: ", currentUser);
           return { currentUser };
         }
       },
     })
   );
-  const PORT = 4000;
+  const PORT = process.env.PORT || 4000;
   httpServer.listen(PORT, () =>
     console.log(`Server is now running on http://localhost:${PORT}`)
   );
