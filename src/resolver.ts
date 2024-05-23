@@ -35,7 +35,7 @@ const resolver = {
         }
         //only if author args is present.
       } else if (args.author) {
-        console.log(args);
+        console.log("ARGS", args);
         try {
           const authorFind = await AuthorMongo.findOne({
             name: args.author,
@@ -49,7 +49,6 @@ const resolver = {
         try {
           const bookslol = await BookMongo.find({ genres: args.genre });
           return bookslol;
-          console.log(bookslol);
         } catch (error) {
           console.log(error);
           return null;
@@ -69,10 +68,11 @@ const resolver = {
   Book: {
     author: async (_root: any, _args: any) => {
       //The root may be an Book or an author.
+      console.log("The root: ", _root);
       if (!_root.author.name) {
         try {
-          const xd = await AuthorMongo.findOne({ _id: _root.author });
-          return xd;
+          const bookToFind = await AuthorMongo.findOne({ _id: _root.author });
+          return bookToFind;
         } catch (error) {
           console.log("Something went wrong mate");
         }
@@ -81,14 +81,15 @@ const resolver = {
       }
     },
   },
+  Author: {
+    id: async (root: any) => root._id,
+  },
   Mutation: {
     addBook: async (
       _root: any,
       args: any,
       { currentUser }: { currentUser: any }
     ) => {
-      console.log("AYE BRUHV");
-      console.log(_root, args, currentUser);
       if (!currentUser) {
         throw new GraphQLError("User not authenticated.", {
           extensions: {
@@ -120,11 +121,8 @@ const resolver = {
         const book = new BookMongo({ ...args, author: author });
 
         await book.save();
-
-        console.log("Book saved to DB");
-
+        //Publishing the event and object to the subscribers.
         pubsub.publish("BOOK_ADDED", { bookAdded: book });
-
         return book;
       } catch (error) {
         throw new GraphQLError("Creating book failed! ", {
@@ -140,6 +138,8 @@ const resolver = {
       args: { name: string; setBornTo: number },
       { currentUser }: { currentUser: any }
     ) => {
+      console.log("Current user: ", currentUser);
+      console.log("Args: ", args);
       if (!currentUser) {
         throw new GraphQLError("User not authenticated.", {
           extensions: {
@@ -153,6 +153,7 @@ const resolver = {
           { $set: { born: args.setBornTo } },
           { returnDocument: "after" }
         );
+        console.log("Updated author: ", updatedAuthor);
         if (!updatedAuthor) {
           throw new GraphQLError("Editing user failed. ", {
             extensions: {
@@ -160,7 +161,6 @@ const resolver = {
             },
           });
         }
-        console.log("UPDATED AUTHOR: ", updatedAuthor);
         return updatedAuthor;
       } catch (error) {
         throw new GraphQLError("Editing user failed. ", {
@@ -223,6 +223,9 @@ const resolver = {
   Subscription: {
     bookAdded: {
       subscribe: () => pubsub.asyncIterator("BOOK_ADDED"),
+    },
+    authorUpdated: {
+      subscribe: () => pubsub.asyncIterator("AUTHOR_UPDATED"),
     },
   },
 };

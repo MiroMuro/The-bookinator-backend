@@ -1,6 +1,5 @@
 const { ApolloServer } = require("@apollo/server");
-//const { startStandaloneServer } = require("@apollo/server/standalone");
-//const { v4: uuidv4 } = require("uuid");
+
 const { expressMiddleware } = require("@apollo/server/express4");
 const {
   ApolloServerPluginDrainHttpServer,
@@ -14,7 +13,6 @@ const http = require("http");
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
 require("dotenv").config();
-//const uuid = uuidv4();
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -64,6 +62,7 @@ const start = async () => {
     cors(),
     express.json(),
     expressMiddleware(server, {
+      //Currentuser is the context that is passed to the resolvers as third parameter.
       context: async ({ req, _res }: { req: any; _res: unknown }) => {
         _res;
         const auth = req ? req.headers.authorization : null;
