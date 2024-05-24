@@ -14,7 +14,6 @@ const resolver = {
     bookCount: async () => BookMongo.collection.countDocuments(),
     authorCount: () => AuthorMongo.collection.countDocuments(),
     allBooks: async (_root: any, args: { author: string; genre: string }) => {
-      console.log("The genre: ", args.genre);
       //If both args are present
       if (args.author && args.genre) {
         try {
@@ -35,7 +34,6 @@ const resolver = {
         }
         //only if author args is present.
       } else if (args.author) {
-        console.log("ARGS", args);
         try {
           const authorFind = await AuthorMongo.findOne({
             name: args.author,
@@ -112,17 +110,24 @@ const resolver = {
         });
       }
       try {
-        let author = await AuthorMongo.findOne({ name: args.author });
+        //The bookcount must be populated to be able to increment it.
+        //The manual increment is needed HERE because bookCount only refreshes when
+        //All authors are re-fetched. e.g. after the book is saved.
+        let author = await AuthorMongo.findOne({ name: args.author }).populate(
+          "bookCount"
+        );
+        author.bookCount += 1;
         if (!author) {
           author = new AuthorMongo({ name: args.author });
           //Existing author not found, Creating and saving new author,
           await author.save();
         }
         const book = new BookMongo({ ...args, author: author });
-
         await book.save();
-        //Publishing the event and object to the subscribers.
+        // publish the event to the subscribers.
+        pubsub.publish("AUTHOR_UPDATED", { authorUpdated: author });
         pubsub.publish("BOOK_ADDED", { bookAdded: book });
+
         return book;
       } catch (error) {
         throw new GraphQLError("Creating book failed! ", {
@@ -138,8 +143,6 @@ const resolver = {
       args: { name: string; setBornTo: number },
       { currentUser }: { currentUser: any }
     ) => {
-      console.log("Current user: ", currentUser);
-      console.log("Args: ", args);
       if (!currentUser) {
         throw new GraphQLError("User not authenticated.", {
           extensions: {
@@ -148,12 +151,14 @@ const resolver = {
         });
       }
       try {
-        const updatedAuthor = await AuthorMongo.collection.findOneAndUpdate(
+        //Remember to populate the bookCount field. Will return null if not populated.
+        const updatedAuthor = await AuthorMongo.findOneAndUpdate(
           { name: args.name },
           { $set: { born: args.setBornTo } },
           { returnDocument: "after" }
-        );
-        console.log("Updated author: ", updatedAuthor);
+        ).populate("bookCount");
+        // publish the event to the subscribers.
+        pubsub.publish("AUTHOR_UPDATED", { authorUpdated: updatedAuthor });
         if (!updatedAuthor) {
           throw new GraphQLError("Editing user failed. ", {
             extensions: {
