@@ -116,12 +116,16 @@ const resolver = {
         let author = await AuthorMongo.findOne({ name: args.author }).populate(
           "bookCount"
         );
-        author.bookCount += 1;
+        console.log("Author first: ", author);
         if (!author) {
-          author = new AuthorMongo({ name: args.author });
+          author = new AuthorMongo({ name: args.author, bookCount: 0 });
+          console.log("Author second: ", author);
           //Existing author not found, Creating and saving new author,
           await author.save();
         }
+        author.bookCount += 1;
+        await author.save();
+        console.log("Author: ", author.bookCount);
         const book = new BookMongo({ ...args, author: author });
         await book.save();
         // publish the event to the subscribers.

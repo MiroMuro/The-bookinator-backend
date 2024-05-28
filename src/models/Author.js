@@ -27,6 +27,7 @@ schema.virtual("bookCount", {
   localField: "_id",
   foreignField: "author",
   count: true,
+  type: Number,
 });
 
 module.exports = mongoose.model("AuthorMongo", schema);
