@@ -10,6 +10,7 @@ const { useServer } = require("graphql-ws/lib/use/ws");
 const express = require("express");
 const cors = require("cors");
 const https = require("https");
+const http = require("http");
 
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
@@ -31,14 +32,14 @@ mongoose
   });
 
 const start = async () => {
-  // Load SSL certificates
-  const privateKey = fs.readFileSync("/etc/secrets/private.key", "utf8");
-  const certificate = fs.readFileSync("/etc/secrets/certificate.crt", "utf8");
+  /* Load SSL certificates
+  const privateKey = fs.readFileSync("certificates/private.key", "utf8");
+  const certificate = fs.readFileSync("certificates/certificate.crt", "utf8");
 
   const credentials = { key: privateKey, cert: certificate };
-
+*/
   const app = express();
-  const httpsServer = https.createServer(credentials, app);
+  const httpsServer = http.createServer(app);
 
   const wsServer = new WebSocketServer({
     server: httpsServer,
@@ -82,7 +83,7 @@ const start = async () => {
       origin: "*",
     }),
     express.json(),
-    express.static("build", options),
+    //express.static("build", options),
 
     expressMiddleware(server, {
       //Currentuser is the context that is passed to the resolvers as third parameter.
