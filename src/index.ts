@@ -60,6 +60,7 @@ const start = async () => {
   app.use(
     "/",
     cors(),
+    express.static("build"),
     express.json(),
     expressMiddleware(server, {
       //Currentuser is the context that is passed to the resolvers as third parameter.

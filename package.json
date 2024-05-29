@@ -1,7 +1,7 @@
 {
   "name": "osa8",
   "version": "1.0.0",
-  "description": "osa8 tehtävät",
+  "description": "Practise for GraphQL and Apollo Server",
   "main": "src/index.ts",
   "scripts": {
     "ts-node": "ts-node",
