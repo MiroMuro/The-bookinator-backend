@@ -126,3 +126,5 @@ Configure the following environment variables in your `.env` file:
     ├── README.md
     └── tsconfig.json
 ```
+## Hosting
+This backend is currently being hosted online at https://baback.onrender.com/
