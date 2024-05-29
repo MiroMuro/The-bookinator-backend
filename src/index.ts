@@ -9,11 +9,13 @@ const { WebSocketServer } = require("ws");
 const { useServer } = require("graphql-ws/lib/use/ws");
 const express = require("express");
 const cors = require("cors");
-const http = require("http");
+const https = require("https");
+
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
 const User = require("./models/User");
 const MONGODB_URI = process.env.MONGODB_URI;
 const resolvers = require("./resolver");
@@ -29,20 +31,28 @@ mongoose
   });
 
 const start = async () => {
+  // Load SSL certificates
+  const privateKey = fs.readFileSync("/etc/secrets/private.key", "utf8");
+  const certificate = fs.readFileSync("/etc/secrets/certificate.crt", "utf8");
+
+  const credentials = { key: privateKey, cert: certificate };
+
   const app = express();
-  const httpServer = http.createServer(app);
+  const httpsServer = https.createServer(credentials, app);
 
   const wsServer = new WebSocketServer({
-    server: httpServer,
+    server: httpsServer,
     path: "/",
   });
+
+  console.log("Starting webscoket server ", wsServer);
   const options = {
     setHeaders: (
       res: { set: (arg0: string, arg1: string) => void },
       path: any,
       stat: any
     ) => {
-      res.set("Access-Control-Allow-Origin", "ws://localhost:4000/");
+      res.set("Access-Control-Allow-Origin", "*");
     },
   };
 
@@ -52,7 +62,7 @@ const start = async () => {
   const server = new ApolloServer({
     schema,
     plugins: [
-      ApolloServerPluginDrainHttpServer({ httpServer }),
+      ApolloServerPluginDrainHttpServer({ httpServer: httpsServer }),
       {
         async serverWillStart() {
           return {
@@ -69,9 +79,7 @@ const start = async () => {
   app.use(
     "/",
     cors({
-      origin: "http://localhost:3000",
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE"],
+      origin: "*",
     }),
     express.json(),
     express.static("build", options),
@@ -93,8 +101,8 @@ const start = async () => {
     })
   );
   const PORT = 4000 || process.env.PORT;
-  httpServer.listen(PORT, () =>
-    console.log(`Server is now running on http://localhost:${PORT}`)
+  httpsServer.listen(PORT, () =>
+    console.log(`Server is now running on https://localhost:${PORT}`)
   );
 };
 start();
