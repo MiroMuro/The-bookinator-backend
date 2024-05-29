@@ -36,6 +36,15 @@ const start = async () => {
     server: httpServer,
     path: "/",
   });
+  const options = {
+    setHeaders: (
+      res: { set: (arg0: string, arg1: string) => void },
+      path: any,
+      stat: any
+    ) => {
+      res.set("Access-Control-Allow-Origin", "ws://localhost:4000/");
+    },
+  };
 
   const schema = makeExecutableSchema({ typeDefs, resolvers });
   const serverCleanup = useServer({ schema }, wsServer);
@@ -60,7 +69,7 @@ const start = async () => {
   app.use(
     "/",
     cors(),
-    express.static("build"),
+    express.static("build", options),
     express.json(),
     expressMiddleware(server, {
       //Currentuser is the context that is passed to the resolvers as third parameter.
