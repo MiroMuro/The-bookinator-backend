@@ -68,9 +68,14 @@ const start = async () => {
   await server.start();
   app.use(
     "/",
-    cors(),
-    express.static("build", options),
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE"],
+    }),
     express.json(),
+    express.static("build", options),
+
     expressMiddleware(server, {
       //Currentuser is the context that is passed to the resolvers as third parameter.
       context: async ({ req, _res }: { req: any; _res: unknown }) => {
