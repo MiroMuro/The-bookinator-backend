@@ -24,7 +24,7 @@ This project is a TypeScript application that sets up an Apollo Server using Exp
 - React frontend integration
 - MongoDB for database operations
 - Mongoose for MongoDB data modeling
-- GraphQL for efficient data fetching
+- GraphQL for efficient data fetching and manipulation
 - ESLint and Prettier for coherent code
 
 ## Installation
@@ -126,3 +126,5 @@ Configure the following environment variables in your `.env` file:
     ├── README.md
     └── tsconfig.json
 ```
+## Hosting
+This backend is currently being hosted online at https://baback.onrender.com/
