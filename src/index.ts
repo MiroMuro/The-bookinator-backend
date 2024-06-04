@@ -83,7 +83,6 @@ const start = async () => {
     cors({
       origin: "*",
     }),
-    express.static("build"),
     express.json(),
     //express.static("build", options),
 
