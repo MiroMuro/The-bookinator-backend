@@ -21,6 +21,7 @@ const User = require("./models/User");
 const MONGODB_URI = process.env.MONGODB_URI;
 const resolvers = require("./resolver");
 const typeDefs = require("./schema");
+
 console.log("Connecting to MongoDB, URI: ", MONGODB_URI);
 mongoose
   .connect(MONGODB_URI)
@@ -39,10 +40,10 @@ const start = async () => {
   const credentials = { key: privateKey, cert: certificate };
 */
   const app = express();
-  const httpsServer = http.createServer(app);
+  const httpServer = http.createServer(app);
 
   const wsServer = new WebSocketServer({
-    server: httpsServer,
+    server: httpServer,
     path: "/",
   });
 
@@ -63,7 +64,7 @@ const start = async () => {
   const server = new ApolloServer({
     schema,
     plugins: [
-      ApolloServerPluginDrainHttpServer({ httpServer: httpsServer }),
+      ApolloServerPluginDrainHttpServer({ httpServer: httpServer }),
       {
         async serverWillStart() {
           return {
@@ -82,6 +83,7 @@ const start = async () => {
     cors({
       origin: "*",
     }),
+    express.static("build"),
     express.json(),
     //express.static("build", options),
 
@@ -102,7 +104,7 @@ const start = async () => {
     })
   );
   const PORT = 4000 || process.env.PORT;
-  httpsServer.listen(PORT, () =>
+  httpServer.listen(PORT, () =>
     console.log(`Server is now running on https://localhost:${PORT}`)
   );
 };
