@@ -14,6 +14,7 @@ const resolver = {
     bookCount: async () => BookMongo.collection.countDocuments(),
     authorCount: () => AuthorMongo.collection.countDocuments(),
     allBooks: async (_root: any, args: { author: string; genre: string }) => {
+      console.log("Args: ", args);
       //If both args are present
       if (args.author && args.genre) {
         try {
@@ -46,13 +47,14 @@ const resolver = {
       } else if (args.genre) {
         try {
           const bookslol = await BookMongo.find({ genres: args.genre });
+          console.log();
           return bookslol;
         } catch (error) {
           console.log(error);
           return null;
         }
       }
-
+      console.log("No args");
       return await BookMongo.find({});
     },
     allAuthors: async () => {
@@ -69,12 +71,18 @@ const resolver = {
       console.log("The root: ", _root);
       if (!_root.author.name) {
         try {
-          const bookToFind = await AuthorMongo.findOne({ _id: _root.author });
+          const bookToFind = await AuthorMongo.findOne({
+            _id: _root.author,
+          }).populate("bookCount");
           return bookToFind;
         } catch (error) {
           console.log("Something went wrong mate");
         }
       } else {
+        let author = await AuthorMongo.findOne({ _id: _root.author }).populate(
+          "bookCount"
+        );
+        console.log("Author: ", author);
         return _root.author;
       }
     },
