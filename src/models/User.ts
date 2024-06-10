@@ -1,6 +1,7 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import { UserMongoDB } from "../types/interfaces";
 const uniqueValidator = require("mongoose-unique-validator");
-const schema = new mongoose.Schema({
+const schema = new mongoose.Schema<UserMongoDB>({
   username: {
     type: String,
     required: true,

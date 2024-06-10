@@ -1,11 +1,8 @@
 const typeDefs = require("./schema");
 const resolvers = require("./resolver");
 import * as http from "http";
-const mongoose = require("mongoose");
-mongoose.set("strictQuery", false);
-require("dotenv").config();
 
-const MONGODB_URI = process.env.MONGODB_URI;
+require("dotenv").config();
 const { createServer, InitializeMongoDB } = require("./server");
 import { ServerType } from "./types/interfaces";
 import { MongooseError } from "mongoose";
@@ -20,10 +17,10 @@ const startApplication = async () => {
     httpServer.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof MongooseError) {
       console.log("Error connecting to MongoDB: ", error.message);
-    } else {
+    } else if (error instanceof Error) {
       console.log("Error starting the application: ", error.message);
     }
   }

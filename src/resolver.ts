@@ -6,14 +6,25 @@ const Account = require("./models/User");
 const bcrypt = require("bcrypt");
 const pubsub = new PubSub();
 const jsonwebtoken = require("jsonwebtoken");
+import {
+  Context,
+  ArgsAllBooks,
+  MongoAuthorBookUnion,
+  AuthorSetBornArgs,
+  UserMongoDB,
+  AddBookArgs,
+  UserInfo,
+  LoginArgs,
+} from "./types/interfaces";
 const resolver = {
   Query: {
-    me: async (_root: any, _args: any, context: any) => {
+    me: async (_root: unknown, _args: {}, context: Context) => {
+      console.log("Context: ", context);
       return context.currentUser;
     },
     bookCount: async () => BookMongo.collection.countDocuments(),
     authorCount: () => AuthorMongo.collection.countDocuments(),
-    allBooks: async (_root: any, args: { author: string; genre: string }) => {
+    allBooks: async (_root: unknown, args: ArgsAllBooks) => {
       console.log("Args: ", args);
       //If both args are present
       if (args.author && args.genre) {
@@ -66,24 +77,17 @@ const resolver = {
   },
 
   Book: {
-    author: async (_root: any, _args: any) => {
+    author: async (_root: MongoAuthorBookUnion, _args: any) => {
       //The root may be an Book or an author.
-      console.log("The root: ", _root);
-      if (!_root.author.name) {
-        try {
-          const bookToFind = await AuthorMongo.findOne({
-            _id: _root.author,
-          }).populate("bookCount");
-          return bookToFind;
-        } catch (error) {
-          console.log("Something went wrong mate");
-        }
+      //If the root is an author, return the author.
+      if ("name" in _root) {
+        return _root;
       } else {
-        let author = await AuthorMongo.findOne({ _id: _root.author }).populate(
+        //If the root is a book, return the author.
+        const author = await AuthorMongo.findById(_root.author).populate(
           "bookCount"
         );
-        console.log("Author: ", author);
-        return _root.author;
+        return author;
       }
     },
   },
@@ -91,12 +95,8 @@ const resolver = {
     id: async (root: any) => root._id,
   },
   Mutation: {
-    addBook: async (
-      _root: any,
-      args: any,
-      { currentUser }: { currentUser: any }
-    ) => {
-      if (!currentUser) {
+    addBook: async (_root: unknown, args: AddBookArgs, context: Context) => {
+      if (!context.currentUser) {
         throw new GraphQLError("User not authenticated.", {
           extensions: {
             code: "Authenticate yourself first.",
@@ -152,10 +152,10 @@ const resolver = {
     },
     editAuthor: async (
       _root: any,
-      args: { name: string; setBornTo: number },
-      { currentUser }: { currentUser: any }
+      args: AuthorSetBornArgs,
+      context: Context
     ) => {
-      if (!currentUser) {
+      if (!context.currentUser) {
         throw new GraphQLError("User not authenticated.", {
           extensions: {
             code: "Authenticate yourself first.",
@@ -188,12 +188,15 @@ const resolver = {
       }
     },
 
-    createUser: async (_root: any, args: any) => {
-      const saltrounds = 10;
-      const passwordHash = await bcrypt.hash(args.password, saltrounds);
+    createUser: async (_root: unknown, args: UserInfo) => {
+      const saltrounds: number = 10;
+      const passwordHash: string = await bcrypt.hash(
+        args.credentials.password,
+        saltrounds
+      );
 
       const user = new Account({
-        username: args.username,
+        username: args.credentials.username,
         favoriteGenre: args.favoriteGenre,
         passwordHash: passwordHash,
       });
@@ -205,33 +208,70 @@ const resolver = {
         throw new GraphQLError("Creating an user failed. ", {
           extensions: {
             code: "INVALID ARGUMENTS",
-            invalidArgs: args.name,
+            invalidArgs: args.credentials.username,
             error,
           },
         });
       }
     },
-    login: async (_root: any, args: any) => {
-      const user = await Account.findOne({ username: args.username });
-
-      const passwordIsCorrect = await bcrypt.compare(
-        args.password,
-        user.passwordHash
-      );
-      if (user && passwordIsCorrect) {
+    login: async (_root: any, args: LoginArgs) => {
+      const generateToken = (user: UserMongoDB, secret: string | undefined) => {
+        if (secret === undefined) throw new Error("JWT_SECRET not defined");
         const userForToken = {
           username: user.username,
           id: user._id,
         };
+        return jsonwebtoken.sign(userForToken, secret, { expiresIn: "1h" });
+      };
 
+      const validateEnvVariables = () => {
+        if (!process.env.JWT_SECRET) {
+          throw new Error("JWT_SECRET not defined");
+        }
+      };
+
+      try {
+        validateEnvVariables();
+
+        const user = await Account.findOne({ username: args.username });
+
+        if (!user) {
+          throw new GraphQLError("Login failed!", {
+            extensions: {
+              code: "WRONG_CREDENTIALS",
+              invalidArgs: args.username,
+            },
+          });
+        }
+        //returns true if the password is correct.
+        const passwordIsCorrect = await bcrypt.compare(
+          args.password,
+          user.passwordHash
+        );
+
+        if (!passwordIsCorrect) {
+          throw new GraphQLError("Login failed!", {
+            extensions: {
+              code: "WRONG_CREDENTIALS",
+              invalidArgs: args.username,
+            },
+          });
+        }
         return {
-          value: jsonwebtoken.sign(userForToken, process.env.JWT_SECRET),
+          //Returns the token user for auhtorization headers.
+          value: generateToken(user, process.env.JWT_SECRET),
         };
-      } else {
-        throw new GraphQLError("Login failed!", {
+      } catch (error) {
+        //If a GraphQLError is thrown within the try block, it is rethrown in the catch block.
+        console.log("Error during login: ", error);
+        if (error instanceof GraphQLError) {
+          throw error;
+        }
+        //If the error is not related to credentials, it is an internal server error.
+        throw new GraphQLError("There was an exception trying to log you in!", {
           extensions: {
-            code: "WRONG_CREDENTIALS",
-            invalidArgs: args.name,
+            code: "INTERNAL_SERVER_ERROR",
+            invalidArgs: args.username,
           },
         });
       }
