@@ -13,8 +13,9 @@ import {
   AuthorSetBornArgs,
   UserMongoDB,
   AddBookArgs,
-  UserInfo,
+  /*UserInfo,*/
   LoginArgs,
+  CreateUserArgs,
 } from "./types/interfaces";
 //Helper functions for the login mutation.
 const generateToken = (user: UserMongoDB, secret: string) => {
@@ -31,6 +32,61 @@ const validateEnvVariables = (): void => {
   }
 };
 
+const validateBookArgs = (args: AddBookArgs): void => {
+  if (args.author.length < 4) {
+    throw new GraphQLError("Author name too short!", {
+      extensions: {
+        code: "Author name too short!",
+      },
+    });
+  }
+  if (args.title.length < 2) {
+    throw new GraphQLError("Book title too short!", {
+      extensions: {
+        code: "Book title too short!",
+      },
+    });
+  }
+};
+
+const findOrCreateAuthor = async (authorName: string) => {
+  //The bookcount must be populated to be able to increment it.
+  let author = await AuthorMongo.findOne({ name: authorName }).populate(
+    "bookCount"
+  );
+
+  if (!author) {
+    author = new AuthorMongo({ name: authorName, bookCount: 0 });
+  }
+
+  //The manual increment is needed HERE because otherwise bookCount would
+  //only refreshes when All authors are re-fetched. e.g. after the book is saved.
+  author.bookCount += 1;
+  await author.save();
+
+  return author;
+};
+
+const findBooksByAuthor = async (authorName: string) => {
+  const author = await AuthorMongo.findOne({ name: authorName });
+  if (!author) return [];
+  return await BookMongo.find({ author: author._id });
+};
+
+const findBooksByGenre = async (genre: string) => {
+  return await BookMongo.find({ genres: genre });
+};
+
+const findBooksByAuthorAndGenre = async (args: ArgsAllBooks) => {
+  const author = await AuthorMongo.findOne({ name: args.author });
+  if (!author) return [];
+  const books = await BookMongo.find({
+    author: author._id,
+    genres: args.genre,
+  });
+  return books;
+};
+
 const resolver = {
   Query: {
     me: async (_root: unknown, _args: {}, context: Context) => {
@@ -40,48 +96,23 @@ const resolver = {
     bookCount: async () => BookMongo.collection.countDocuments(),
     authorCount: () => AuthorMongo.collection.countDocuments(),
     allBooks: async (_root: unknown, args: ArgsAllBooks) => {
-      console.log("Args: ", args);
-      //If both args are present
-      if (args.author && args.genre) {
-        try {
-          const authorFind = await AuthorMongo.findOne({
-            name: args.author,
-          });
-          if (!authorFind) {
-            return [];
-          }
-          const booksFound = await BookMongo.find({
-            genres: args.genre,
-            author: authorFind._id,
-          });
-          return booksFound;
-        } catch (error) {
-          console.log(error);
-          return null;
+      try {
+        if (args.author && args.genre) {
+          return await findBooksByAuthorAndGenre(args);
+        } else if (args.author) {
+          return await findBooksByAuthor(args.author);
+        } else if (args.genre) {
+          return await findBooksByGenre(args.genre);
+        } else {
+          return await BookMongo.find({});
         }
-        //only if author args is present.
-      } else if (args.author) {
-        try {
-          const authorFind = await AuthorMongo.findOne({
-            name: args.author,
+      } catch (error) {
+        console.log(error);
+        if (error instanceof GraphQLError)
+          throw new GraphQLError("Error fetching books.", {
+            extensions: { code: "INTERNAL_SERVER_ERROR", error },
           });
-          return await BookMongo.find({ author: authorFind._id });
-        } catch (error) {
-          console.log(error);
-          return null;
-        }
-      } else if (args.genre) {
-        try {
-          const bookslol = await BookMongo.find({ genres: args.genre });
-          console.log();
-          return bookslol;
-        } catch (error) {
-          console.log(error);
-          return null;
-        }
       }
-      console.log("No args");
-      return await BookMongo.find({});
     },
     allAuthors: async () => {
       const allAuthors = await AuthorMongo.find().populate("bookCount");
@@ -111,44 +142,12 @@ const resolver = {
   },
   Mutation: {
     addBook: async (_root: unknown, args: AddBookArgs, context: Context) => {
-      if (!context.currentUser) {
-        throw new GraphQLError("User not authenticated.", {
-          extensions: {
-            code: "Authenticate yourself first.",
-          },
-        });
-      }
-      if (args.author.length < 4) {
-        throw new GraphQLError("Bad user input!", {
-          extensions: {
-            code: "Author name too short!",
-          },
-        });
-      }
-      if (args.title.length < 5) {
-        throw new GraphQLError("Bad user input!", {
-          extensions: {
-            code: "Book title too short!",
-          },
-        });
-      }
       try {
-        //The bookcount must be populated to be able to increment it.
-        //The manual increment is needed HERE because bookCount only refreshes when
-        //All authors are re-fetched. e.g. after the book is saved.
-        let author = await AuthorMongo.findOne({ name: args.author }).populate(
-          "bookCount"
-        );
-        console.log("Author first: ", author);
-        if (!author) {
-          author = new AuthorMongo({ name: args.author, bookCount: 0 });
-          console.log("Author second: ", author);
-          //Existing author not found, Creating and saving new author,
-          await author.save();
-        }
-        author.bookCount += 1;
-        await author.save();
-        console.log("Author: ", author.bookCount);
+        //Use a helper function to validate the args.
+        validateBookArgs(args);
+        //Find or create the author.
+        const author = await findOrCreateAuthor(args.author);
+
         const book = new BookMongo({ ...args, author: author });
         await book.save();
         // publish the event to the subscribers.
@@ -184,15 +183,16 @@ const resolver = {
           { $set: { born: args.setBornTo } },
           { returnDocument: "after" }
         ).populate("bookCount");
-        // publish the event to the subscribers.
-        pubsub.publish("AUTHOR_UPDATED", { authorUpdated: updatedAuthor });
+
         if (!updatedAuthor) {
-          throw new GraphQLError("Editing user failed. ", {
+          throw new GraphQLError("Author not found!. ", {
             extensions: {
-              code: "BAD_USER_INPUT || AUTHOR_NOT_FOUND",
+              code: "AUTHOR_NOT_FOUND",
             },
           });
         }
+        // publish the event to the subscribers.
+        pubsub.publish("AUTHOR_UPDATED", { authorUpdated: updatedAuthor });
         return updatedAuthor;
       } catch (error) {
         throw new GraphQLError("Editing user failed. ", {
@@ -203,15 +203,12 @@ const resolver = {
       }
     },
 
-    createUser: async (_root: unknown, args: UserInfo) => {
+    createUser: async (_root: unknown, args: CreateUserArgs) => {
       const saltrounds: number = 10;
-      const passwordHash: string = await bcrypt.hash(
-        args.credentials.password,
-        saltrounds
-      );
+      const passwordHash: string = await bcrypt.hash(args.password, saltrounds);
 
       const user = new Account({
-        username: args.credentials.username,
+        username: args.username,
         favoriteGenre: args.favoriteGenre,
         passwordHash: passwordHash,
       });
@@ -223,7 +220,7 @@ const resolver = {
         throw new GraphQLError("Creating an user failed. ", {
           extensions: {
             code: "INVALID ARGUMENTS",
-            invalidArgs: args.credentials.username,
+            invalidArgs: args.username,
             error,
           },
         });
@@ -234,10 +231,11 @@ const resolver = {
         //Validates the environment variables used for generating the token.
         validateEnvVariables();
 
+        //Finds the user in the database.
         const user: UserMongoDB = await Account.findOne({
           username: args.username,
         });
-
+        //If the user is not found, throw an error.
         if (!user) {
           throw new GraphQLError("Login failed!", {
             extensions: {
@@ -251,7 +249,7 @@ const resolver = {
           args.password,
           user.passwordHash
         );
-
+        //If the password is incorrect, throw an error.
         if (!passwordIsCorrect) {
           throw new GraphQLError("Login failed!", {
             extensions: {

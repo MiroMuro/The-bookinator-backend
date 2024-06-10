@@ -26,13 +26,14 @@ export type AddBookArgs = {
   published: number;
   genres: string[];
 };
+
 export type LoginArgs = {
   username: string;
   password: string;
 };
-
-export type UserInfo = {
-  credentials: LoginArgs;
+export type CreateUserArgs = {
+  username: string;
+  password: string;
   favoriteGenre: string;
 };
 
@@ -49,8 +50,8 @@ export interface Context {
 }
 
 export interface ArgsAllBooks {
-  author: string;
-  genre: string;
+  author?: string;
+  genre?: string;
 }
 export type MongoAuthorType = {
   id: string;
