@@ -16,6 +16,21 @@ import {
   UserInfo,
   LoginArgs,
 } from "./types/interfaces";
+//Helper functions for the login mutation.
+const generateToken = (user: UserMongoDB, secret: string) => {
+  const userForToken = {
+    username: user.username,
+    id: user._id,
+  };
+  return jsonwebtoken.sign(userForToken, secret, { expiresIn: "1h" });
+};
+
+const validateEnvVariables = (): void => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET not defined");
+  }
+};
+
 const resolver = {
   Query: {
     me: async (_root: unknown, _args: {}, context: Context) => {
@@ -215,25 +230,13 @@ const resolver = {
       }
     },
     login: async (_root: any, args: LoginArgs) => {
-      const generateToken = (user: UserMongoDB, secret: string | undefined) => {
-        if (secret === undefined) throw new Error("JWT_SECRET not defined");
-        const userForToken = {
-          username: user.username,
-          id: user._id,
-        };
-        return jsonwebtoken.sign(userForToken, secret, { expiresIn: "1h" });
-      };
-
-      const validateEnvVariables = () => {
-        if (!process.env.JWT_SECRET) {
-          throw new Error("JWT_SECRET not defined");
-        }
-      };
-
       try {
+        //Validates the environment variables used for generating the token.
         validateEnvVariables();
 
-        const user = await Account.findOne({ username: args.username });
+        const user: UserMongoDB = await Account.findOne({
+          username: args.username,
+        });
 
         if (!user) {
           throw new GraphQLError("Login failed!", {
@@ -259,7 +262,7 @@ const resolver = {
         }
         return {
           //Returns the token user for auhtorization headers.
-          value: generateToken(user, process.env.JWT_SECRET),
+          value: generateToken(user, process.env.JWT_SECRET!),
         };
       } catch (error) {
         //If a GraphQLError is thrown within the try block, it is rethrown in the catch block.
