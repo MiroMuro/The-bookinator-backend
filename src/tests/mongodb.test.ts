@@ -1,13 +1,10 @@
+require("dotenv").config();
 const MONGODB_URI = process.env.MONGODB_URI;
 const mongoose = require("mongoose");
-require("dotenv").config();
-
+console.log("MONGODB_URI: ", MONGODB_URI);
 describe("MongoDB Connection", () => {
   beforeAll(async () => {
-    await mongoose.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(MONGODB_URI, {});
   });
 
   afterAll(async () => {

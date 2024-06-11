@@ -255,7 +255,7 @@ const resolver = {
           throw new GraphQLError("Login failed!", {
             extensions: {
               code: "WRONG_CREDENTIALS",
-              invalidArgs: args.username,
+              invalidArgs: args.password,
             },
           });
         }
@@ -278,6 +278,20 @@ const resolver = {
         });
       }
     },
+    /*logout: (parent, args, context) => {
+      // If you're using sessions, you can destroy the session here.
+      if (context.req && context.req.session) {
+        context.req.session.destroy((err) => {
+          if (err) {
+            throw new Error("Failed to log out");
+          }
+        });
+      }
+
+      // Invalidate JWT token by simply returning true since it's stateless.
+      // Actual invalidation should be handled on the client-side by removing the token.
+      return true;
+    },*/
   },
   Subscription: {
     bookAdded: {
