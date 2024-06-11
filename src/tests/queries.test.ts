@@ -11,9 +11,11 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const MONGODB_URI = process.env.MONGODB_URI;
 const mongoose = require("mongoose");
+import { MongooseError } from "mongoose";
+
 require("dotenv").config();
 
-const { server, app, httpServer, wsServer } = require("../server");
+const { server, app, httpServer } = require("../server");
 //User for testing.
 const testUser = {
   username: "testUser1",
@@ -23,13 +25,11 @@ const testUser = {
 beforeAll(async () => {
   //Set up the database for the tests.
   await mongoose
-    .connect(
-      "mongodb+srv://mssl2000:90cZUt5J1CMajhGt@miro.oyuedl2.mongodb.net/?retryWrites=true&w=majority&appName=miro"
-    )
+    .connect(MONGODB_URI)
     .then(() => {
       console.log("Connection established to MongoDB");
     })
-    .catch((error: any) => {
+    .catch((error: MongooseError) => {
       console.log("Error connecring to MongoDB: ", error.message);
     });
   //Clear the colletions before running the tests.
@@ -48,8 +48,7 @@ beforeAll(async () => {
     //express.static("build", options),
     expressMiddleware(server, {
       //Currentuser is the context that is passed to the resolvers as third parameter.
-      context: async ({ req, _res }: { req: any; _res: unknown }) => {
-        _res;
+      context: async ({ req }: { req: express.Request }) => {
         const auth = req ? req.headers.authorization : null;
         if (auth && auth.startsWith("bearer ")) {
           const decodedToken = jwt.verify(
@@ -62,7 +61,7 @@ beforeAll(async () => {
       },
     })
   );
-  const PORT = 4000 || process.env.PORT;
+  const PORT = process.env.PORT || 4000;
   httpServer.listen(PORT, () =>
     console.log(`Server is now running on https://localhost:${PORT}`)
   );
@@ -91,7 +90,7 @@ describe("Apollo Server", () => {
       .set("x-apollo-operation-name", "createUser")
       .send({ query: mutation });
 
-    const { data, errros } = response.body;
+    const { data } = response.body;
 
     expect(response.status).toBe(200);
     expect(data).toBeDefined();

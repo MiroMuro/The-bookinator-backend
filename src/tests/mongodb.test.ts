@@ -1,14 +1,13 @@
 const MONGODB_URI = process.env.MONGODB_URI;
 const mongoose = require("mongoose");
+require("dotenv").config();
+
 describe("MongoDB Connection", () => {
   beforeAll(async () => {
-    await mongoose.connect(
-      "mongodb+srv://mssl2000:90cZUt5J1CMajhGt@miro.oyuedl2.mongodb.net/?retryWrites=true&w=majority&appName=miro",
-      {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
-    );
+    await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
   });
 
   afterAll(async () => {

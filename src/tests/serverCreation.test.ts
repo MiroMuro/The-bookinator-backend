@@ -68,7 +68,7 @@ describe("Apollo Server", () => {
       .set("Content-Type", "application/json")
       .send({ query: mutation });
 
-    const { data, errors } = response.body;
+    const { data } = response.body;
 
     expect(response.status).toBe(200);
     expect(data).toBeDefined();
@@ -90,7 +90,7 @@ describe("Apollo Server", () => {
       .set("Content-Type", "application/json")
       .send({ query });
 
-    const { data, errors } = response.body;
+    const { data } = response.body;
 
     expect(response.status).toBe(200);
     expect(data).toBeDefined();

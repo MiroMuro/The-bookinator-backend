@@ -87,10 +87,18 @@ const findBooksByAuthorAndGenre = async (args: ArgsAllBooks) => {
   return books;
 };
 
+const authenticateUser = async (context: Context) => {
+  if (!context.currentUser) {
+    throw new GraphQLError("User not authenticated.", {
+      extensions: {
+        code: "Authenticate yourself first.",
+      },
+    });
+  }
+};
 const resolver = {
   Query: {
-    me: async (_root: unknown, _args: {}, context: Context) => {
-      console.log("Context: ", context);
+    me: async (_root: unknown, _args: unknown, context: Context) => {
       return context.currentUser;
     },
     bookCount: async () => BookMongo.collection.countDocuments(),
@@ -123,7 +131,7 @@ const resolver = {
   },
 
   Book: {
-    author: async (_root: MongoAuthorBookUnion, _args: any) => {
+    author: async (_root: MongoAuthorBookUnion) => {
       //The root may be an Book or an author.
       //If the root is an author, return the author.
       if ("name" in _root) {
@@ -137,12 +145,11 @@ const resolver = {
       }
     },
   },
-  Author: {
-    id: async (root: any) => root._id,
-  },
+
   Mutation: {
     addBook: async (_root: unknown, args: AddBookArgs, context: Context) => {
       try {
+        authenticateUser(context);
         //Use a helper function to validate the args.
         validateBookArgs(args);
         //Find or create the author.
@@ -165,18 +172,12 @@ const resolver = {
       }
     },
     editAuthor: async (
-      _root: any,
+      root: unknown,
       args: AuthorSetBornArgs,
       context: Context
     ) => {
-      if (!context.currentUser) {
-        throw new GraphQLError("User not authenticated.", {
-          extensions: {
-            code: "Authenticate yourself first.",
-          },
-        });
-      }
       try {
+        authenticateUser(context);
         //Remember to populate the bookCount field. Will return null if not populated.
         const updatedAuthor = await AuthorMongo.findOneAndUpdate(
           { name: args.name },
@@ -226,7 +227,7 @@ const resolver = {
         });
       }
     },
-    login: async (_root: any, args: LoginArgs) => {
+    login: async (root: unknown, args: LoginArgs) => {
       try {
         //Validates the environment variables used for generating the token.
         validateEnvVariables();

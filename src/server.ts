@@ -1,6 +1,8 @@
 import express from "express";
 import { ServerType } from "./types/interfaces";
 import * as http from "http";
+import { DocumentNode } from "graphql";
+import { ResolversTypes } from "./utils/codegen/graphql";
 const { ApolloServer } = require("@apollo/server");
 const { expressMiddleware } = require("@apollo/server/express4");
 const {
@@ -33,8 +35,8 @@ const InitializeMongoDB = async () => {
 };
 
 const createServer = async (
-  typeDefs: any,
-  resolvers: any
+  typeDefs: DocumentNode,
+  resolvers: ResolversTypes
 ): Promise<ServerType> => {
   // Initialize an Express application
   // Express is a minimal and flexible Node.js web application framework that provides a robust set of features for web and mobile applications.
