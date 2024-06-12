@@ -15,6 +15,7 @@ import { DocumentNode } from "graphql";
 import * as http from "http";
 import { testUser, ServerType } from "../types/interfaces";
 import { books } from "./testdata";
+//import exp from "constants";
 dotenv.config();
 
 let logintoken: string;
@@ -90,7 +91,7 @@ describe("Apollo Server", () => {
     expect(data.createUser.id).toBeDefined();
   });
   describe("Login", () => {
-    it("is successfull and returns an auth token", async () => {
+    it("is successful and returns an authorization token", async () => {
       const loginMutation = `
         mutation {
         login(username: "${user.username}", password: "${user.password}"){
@@ -125,9 +126,9 @@ describe("Apollo Server", () => {
 
       const { data } = response.body;
       const [errors] = response.body.errors;
-      console.log("Response: ", response.body);
+      /*console.log("Response: ", response.body);
       console.log("Error: ", response.body.errors);
-      console.log("More erros: ", errors);
+      console.log("More erros: ", errors);*/
       expect(response.status).toBe(200);
       expect(data.login).toBeNull();
       expect(errors.message).toBe("Login failed!");
@@ -150,9 +151,9 @@ describe("Apollo Server", () => {
 
       const { data } = response.body;
       const [errors] = response.body.errors;
-      console.log("Response: ", response.body);
+      /*console.log("Response: ", response.body);
       console.log("Error: ", response.body.errors);
-      console.log("More erros: ", errors);
+      console.log("More erros: ", errors);*/
       expect(response.status).toBe(200);
       expect(data.login).toBeNull();
       expect(errors.message).toBe("Login failed!");
@@ -161,14 +162,14 @@ describe("Apollo Server", () => {
       //expect(errors.message).toBeDefined();
     });
   });
-
-  it("An user can add a book, Author bookcount is updated correctly", async () => {
-    const book = books[0];
-    const mutation = `
+  describe("A book", () => {
+    it("CANT be added by an unauthenticated user, and returns correct errors.", async () => {
+      const book = books[0];
+      const mutation = `
       mutation {
       addBook(title: "${book.title}", author: "${book.author}", published: ${
-      book.published
-    }, genres: ${JSON.stringify(book.genres)}){
+        book.published
+      }, genres: ${JSON.stringify(book.genres)}){
         title
         author {
           name
@@ -179,26 +180,231 @@ describe("Apollo Server", () => {
       }
     }
       `;
+      //Omit the authorization token, to simulate an unauthenticated user.
+      //e.g an user that is not logged in.
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .send({ query: mutation });
 
-    const response = await request(app)
-      .post("/")
-      .set("Content-Type", "application/json")
-      .set("Authorization", `bearer ${logintoken}`)
-      .send({ query: mutation });
-
-    const { data } = response.body;
-
-    expect(response.status).toBe(200);
-    expect(data).toBeDefined();
-    expect(data.addBook).toBeDefined();
-    expect(data.addBook.title).toBe(book.title);
-    expect(data.addBook.author).toStrictEqual({
-      name: book.author,
-      bookCount: 1,
+      const { data } = response.body;
+      const [errors] = response.body.errors;
+      expect(response.status).toBe(200);
+      expect(errors.message).toBe("User not authenticated.");
+      expect(errors.extensions.code).toBe("UNAUTHENTICATED_USER");
+      expect(errors.extensions.message).toBe("Authenticate yourself first.");
+      expect(data.value).toBeUndefined();
+      //expect(errors.message).toBe("Creating book failed! ");
+      //console.log("Response: ", response);
+      //console.log("Errors: ", errors);
+      //console.log("Response data: ", data);
+      //console.log("Errors: ", errors);
     });
-    expect(data.addBook.published).toBe(book.published);
-    expect(data.addBook.genres).toEqual(book.genres);
+    it("Can be added by an authenticated user and Author bookcount is updated correctly", async () => {
+      const book = books[0];
+      const mutation = `
+        mutation {
+        addBook(title: "${book.title}", author: "${book.author}", published: ${
+        book.published
+      }, genres: ${JSON.stringify(book.genres)}){
+          title
+          author {
+            name
+            bookCount
+          }
+          published
+          genres
+        }
+      }
+        `;
+
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: mutation });
+
+      const { data } = response.body;
+
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data.addBook).toBeDefined();
+      expect(data.addBook.title).toBe(book.title);
+      expect(data.addBook.author).toStrictEqual({
+        name: book.author,
+        bookCount: 1,
+      });
+      expect(data.addBook.published).toBe(book.published);
+      expect(data.addBook.genres).toEqual(book.genres);
+    });
+    describe("Cant be added with", () => {
+      it("empty title and returns corresponsing errors", async () => {
+        const book = books[0];
+        const mutation = `
+        mutation {
+        addBook(title: "${""}", author: "${book.author}", published: ${
+          book.published
+        }, genres: ${JSON.stringify(book.genres)}){
+          title
+          author {
+            name
+            bookCount
+          }
+          published
+          genres
+        }
+      }
+        `;
+
+        const response = await request(app)
+          .post("/")
+          .set("Content-Type", "application/json")
+          .set("Authorization", `bearer ${logintoken}`)
+          .send({ query: mutation });
+
+        const { data } = response.body;
+        const [errors] = response.body.errors;
+        expect(response.status).toBe(200);
+        expect(data.value).toBeUndefined();
+        expect(errors.message).toBe("Creating a book failed!");
+        expect(errors.extensions.message).toBe("Book title too short!");
+        expect(errors.extensions.code).toBe("BAD_BOOK_TITLE");
+      });
+      it("empty author and returns corresponsing errors", async () => {
+        const book = books[0];
+        const mutation = `
+        mutation {
+        addBook(title: "${book.title}", author: "${""}", published: ${
+          book.published
+        }, genres: ${JSON.stringify(book.genres)}){
+          title
+          author {
+            name
+            bookCount
+          }
+          published
+          genres
+        }
+      }
+        `;
+        const response = await request(app)
+          .post("/")
+          .set("Content-Type", "application/json")
+          .set("Authorization", `bearer ${logintoken}`)
+          .send({ query: mutation });
+
+        const { data } = response.body;
+        const [errors] = response.body.errors;
+        expect(response.status).toBe(200);
+        expect(data.value).toBeUndefined();
+        expect(errors.message).toBe("Creating a book failed!");
+        expect(errors.extensions.message).toBe("Author name too short!");
+        expect(errors.extensions.code).toBe("BAD_AUTHOR_NAME");
+      });
+      it("empty published and returns corresponsing errors", async () => {
+        const book = books[0];
+        const mutation = `
+        mutation {
+        addBook(title: "${book.title}", author: "${
+          book.author
+        }", published: ${undefined}, genres: ${JSON.stringify(book.genres)}){
+          title 
+          author {
+            name
+            bookCount
+          }
+          published
+          genres
+        }
+      }
+        `;
+        const response = await request(app)
+          .post("/")
+          .set("Content-Type", "application/json")
+          .set("Authorization", `bearer ${logintoken}`)
+          .send({ query: mutation });
+
+        const { data } = response.body;
+        const [errors] = response.body.errors;
+        expect(response.status).toBe(400);
+        expect(data).toBeUndefined();
+        expect(errors.message).toBe(
+          "Int cannot represent non-integer value: undefined"
+        );
+        expect(errors.extensions.code).toBe("GRAPHQL_VALIDATION_FAILED");
+        //expect(errors.extensions.code).toBe("BAD_BOOK_PUBLICATION_DATE");
+      });
+      it("negative published and returns corresponsing errors", async () => {
+        const book = books[0];
+        const mutation = `
+        mutation {
+        addBook(title: "${book.title}", author: "${
+          book.author
+        }", published: ${-2000}, genres: ${JSON.stringify(book.genres)}){
+          title 
+          author {
+            name
+            bookCount
+          }
+          published
+          genres
+        }
+      }
+        `;
+        const response = await request(app)
+          .post("/")
+          .set("Content-Type", "application/json")
+          .set("Authorization", `bearer ${logintoken}`)
+          .send({ query: mutation });
+
+        const { data } = response.body;
+        const [errors] = response.body.errors;
+        // console.log("Response: ", data);
+        //c onsole.log("Errors: ", errors);
+        expect(response.status).toBe(200);
+        expect(data.value).toBeUndefined();
+        expect(errors.message).toBe("Creating a book failed!");
+        expect(errors.extensions.message).toBe(
+          "Publication date cant be negative!"
+        );
+        expect(errors.extensions.code).toBe("BAD_BOOK_PUBLICATION_DATE");
+      });
+      it("empty genres and returns corresponsing errors", async () => {
+        const book = books[0];
+        const mutation = `
+        mutation {
+        addBook(title: "${book.title}", author: "${book.author}",published: ${
+          book.published
+        }, genres: ${JSON.stringify([])}){
+        title
+        author{
+          name
+          bookCount
+        }
+        published
+        genres
+        }
+      }
+        `;
+        const response = await request(app)
+          .post("/")
+          .set("Content-Type", "application/json")
+          .set("Authorization", `bearer ${logintoken}`)
+          .send({ query: mutation });
+
+        const { data } = response.body;
+        const [errors] = response.body.errors;
+        expect(response.status).toBe(200);
+        expect(data.value).toBeUndefined();
+        expect(errors.message).toBe("Creating a book failed!");
+        expect(errors.extensions.message).toBe(
+          "Book must have at least one genre!"
+        );
+        expect(errors.extensions.code).toBe("BAD_BOOK_GENRES");
+      });
+    });
   });
+
   it("aids ", async () => {});
   it("should respond to a simple query", async () => {
     const query = `

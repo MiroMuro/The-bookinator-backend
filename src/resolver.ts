@@ -34,16 +34,34 @@ const validateEnvVariables = (): void => {
 
 const validateBookArgs = (args: AddBookArgs): void => {
   if (args.author.length < 4) {
-    throw new GraphQLError("Author name too short!", {
+    throw new GraphQLError("Creating a book failed!", {
       extensions: {
-        code: "Author name too short!",
+        message: "Author name too short!",
+        code: "BAD_AUTHOR_NAME",
       },
     });
   }
   if (args.title.length < 2) {
-    throw new GraphQLError("Book title too short!", {
+    throw new GraphQLError("Creating a book failed!", {
       extensions: {
-        code: "Book title too short!",
+        message: "Book title too short!",
+        code: "BAD_BOOK_TITLE",
+      },
+    });
+  }
+  if (!args.genres.length) {
+    throw new GraphQLError("Creating a book failed!", {
+      extensions: {
+        message: "Book must have at least one genre!",
+        code: "BAD_BOOK_GENRES",
+      },
+    });
+  }
+  if (args.published < 0) {
+    throw new GraphQLError("Creating a book failed!", {
+      extensions: {
+        message: "Publication date cant be negative!",
+        code: "BAD_BOOK_PUBLICATION_DATE",
       },
     });
   }
@@ -87,11 +105,12 @@ const findBooksByAuthorAndGenre = async (args: ArgsAllBooks) => {
   return books;
 };
 
-const authenticateUser = async (context: Context) => {
+const authenticateUser = (context: Context) => {
   if (!context.currentUser) {
     throw new GraphQLError("User not authenticated.", {
       extensions: {
-        code: "Authenticate yourself first.",
+        message: "Authenticate yourself first.",
+        code: "UNAUTHENTICATED_USER",
       },
     });
   }
@@ -154,7 +173,6 @@ const resolver = {
         validateBookArgs(args);
         //Find or create the author.
         const author = await findOrCreateAuthor(args.author);
-
         const book = new BookMongo({ ...args, author: author });
         await book.save();
         // publish the event to the subscribers.
@@ -163,6 +181,11 @@ const resolver = {
 
         return book;
       } catch (error) {
+        //If a GraphQLError is thrown within the try block, it is rethrown in the catch block.
+        //This catches authentication error. e.g. User not logged in.
+        if (error instanceof GraphQLError) {
+          throw error;
+        }
         throw new GraphQLError("Creating book failed! ", {
           extensions: {
             code: "Bad user input.",
