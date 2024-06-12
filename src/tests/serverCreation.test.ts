@@ -126,15 +126,12 @@ describe("Apollo Server", () => {
 
       const { data } = response.body;
       const [errors] = response.body.errors;
-      /*console.log("Response: ", response.body);
-      console.log("Error: ", response.body.errors);
-      console.log("More erros: ", errors);*/
+
       expect(response.status).toBe(200);
       expect(data.login).toBeNull();
       expect(errors.message).toBe("Login failed!");
       expect(errors.extensions.code).toBe("WRONG_CREDENTIALS");
       expect(errors.extensions.invalidArgs).toBe("wrongUsername");
-      //expect(errors.message).toBeDefined();
     });
     it("fails with wrong password", async () => {
       const badCredentialsLoginMutation = `
@@ -151,15 +148,12 @@ describe("Apollo Server", () => {
 
       const { data } = response.body;
       const [errors] = response.body.errors;
-      /*console.log("Response: ", response.body);
-      console.log("Error: ", response.body.errors);
-      console.log("More erros: ", errors);*/
+
       expect(response.status).toBe(200);
       expect(data.login).toBeNull();
       expect(errors.message).toBe("Login failed!");
       expect(errors.extensions.code).toBe("WRONG_CREDENTIALS");
       expect(errors.extensions.invalidArgs).toBe("wrongPassword");
-      //expect(errors.message).toBeDefined();
     });
   });
   describe("A book", () => {
@@ -194,11 +188,6 @@ describe("Apollo Server", () => {
       expect(errors.extensions.code).toBe("UNAUTHENTICATED_USER");
       expect(errors.extensions.message).toBe("Authenticate yourself first.");
       expect(data.value).toBeUndefined();
-      //expect(errors.message).toBe("Creating book failed! ");
-      //console.log("Response: ", response);
-      //console.log("Errors: ", errors);
-      //console.log("Response data: ", data);
-      //console.log("Errors: ", errors);
     });
     it("Can be added by an authenticated user and Author bookcount is updated correctly", async () => {
       const book = books[0];
@@ -237,7 +226,78 @@ describe("Apollo Server", () => {
       expect(data.addBook.published).toBe(book.published);
       expect(data.addBook.genres).toEqual(book.genres);
     });
+    it("Can be fetched correctly", async () => {
+      //The added book should be the first book in the array.
+      //It needs to be added a bookcount property to the author object.
+      const addedBook = {
+        ...books[0],
+        author: { name: books[0].author, bookCount: 1 },
+      };
+      console.log("Added book: ", addedBook);
+      const query = `
+        query {
+          allBooks{
+            title
+            author {
+              name
+              bookCount
+            }
+            genres
+            published
+            title
+        }
+      }`;
+
+      const response = await request(app).post("/").send({ query });
+      const { data } = response.body;
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data.allBooks).toBeDefined();
+      expect(data.allBooks[0]).toEqual(addedBook);
+      console.log(data.allBooks);
+      //console.log(query);
+    });
     describe("Cant be added with", () => {
+      it("duplicate title and returns corresponsing errors", async () => {
+        const book = books[0];
+        const mutation = `
+        mutation {
+        addBook(title: "${book.title}", author: "${book.author}", published: ${
+          book.published
+        }, genres: ${JSON.stringify(book.genres)}){
+          title
+          author {
+            name
+            bookCount
+          }
+          published
+          genres
+        }
+      }
+        `;
+
+        const response = await request(app)
+          .post("/")
+          .set("Content-Type", "application/json")
+          .set("Authorization", `bearer ${logintoken}`)
+          .send({ query: mutation });
+
+        const { data } = response.body;
+        const [errors] = response.body.errors;
+        expect(response.status).toBe(200);
+        expect(data.value).toBeUndefined();
+        expect(errors.message).toBe("Creating a book failed!");
+        expect(errors.extensions.code).toBe("DUPLICATE_BOOK_TITLE");
+        expect(errors.extensions.error._message).toBe(
+          "BookMongo validation failed"
+        );
+        expect(errors.extensions.error.name).toBe("ValidationError");
+        expect(errors.extensions.error.message).toBe(
+          "BookMongo validation failed: title: Error, expected `title` to be unique. Value: `Oddly Normal`"
+        );
+        console.log("Data: ", data);
+        console.log("Errors: ", errors);
+      });
       it("empty title and returns corresponsing errors", async () => {
         const book = books[0];
         const mutation = `
@@ -334,7 +394,7 @@ describe("Apollo Server", () => {
         expect(errors.extensions.code).toBe("GRAPHQL_VALIDATION_FAILED");
         //expect(errors.extensions.code).toBe("BAD_BOOK_PUBLICATION_DATE");
       });
-      it("negative published and returns corresponsing errors", async () => {
+      it("negative publication year and returns corresponsing errors", async () => {
         const book = books[0];
         const mutation = `
         mutation {
@@ -403,26 +463,86 @@ describe("Apollo Server", () => {
         expect(errors.extensions.code).toBe("BAD_BOOK_GENRES");
       });
     });
-  });
 
-  it("aids ", async () => {});
-  it("should respond to a simple query", async () => {
-    const query = `
+    it("should respond to a simple query", async () => {
+      const query = `
       query {
         allGenres
       }
     `;
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .send({ query });
 
-    const response = await request(app)
-      .post("/")
-      .set("Content-Type", "application/json")
-      .send({ query });
+      const { data } = response.body;
 
-    const { data } = response.body;
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data.allGenres).toBeDefined();
+    });
+  });
+  describe("Amount of books ", () => {
+    it("is updated correctly ", async () => {
+      const secondBook = books[1];
+      const thirdBook = books[2];
+      const secondMutation = `
+        mutation {
+        addBook(title: "${secondBook.title}", author: "${
+        secondBook.author
+      }",published: ${secondBook.published}, genres: ${JSON.stringify(
+        secondBook.genres
+      )}){
+        title
+        author{
+          name
+          bookCount
+        }
+        published
+        genres
+        }
+      }
+        `;
+      const thirdMutation = `
+        mutation {
+        addBook(title: "${thirdBook.title}", author: "${
+        thirdBook.author
+      }",published: ${thirdBook.published}, genres: ${JSON.stringify(
+        thirdBook.genres
+      )}){
+      title
+      author{
+        name
+        bookCount
+      }
+      published
+      genres
+      }
+    }
+        `;
+      const bookCountQuery = `query{ bookCount}`;
 
-    expect(response.status).toBe(200);
-    expect(data).toBeDefined();
-    expect(data.allGenres).toBeDefined();
+      //Add two more books
+      await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: secondMutation });
+      await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: thirdMutation });
+
+      const response = await request(app)
+        .post("/")
+        .send({ query: bookCountQuery });
+
+      const { data } = response.body;
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data.bookCount).toBe(3);
+    });
   });
 });
 export {};

@@ -186,9 +186,9 @@ const resolver = {
         if (error instanceof GraphQLError) {
           throw error;
         }
-        throw new GraphQLError("Creating book failed! ", {
+        throw new GraphQLError("Creating a book failed!", {
           extensions: {
-            code: "Bad user input.",
+            code: "DUPLICATE_BOOK_TITLE",
             error,
           },
         });
