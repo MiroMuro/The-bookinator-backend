@@ -27,8 +27,14 @@ export const books: AddBookArgs[] = [
   },
   {
     title: "The great amazonian jungle",
-    author: "Jack Swanson",
+    author: "Miranda Priestly",
     published: 2015,
     genres: ["Nature", "Adventure"],
+  },
+  {
+    title: "The cheese and the worms",
+    author: "Carlo Ginzburg",
+    published: 1980,
+    genres: ["History", "Anthropology"],
   },
 ];

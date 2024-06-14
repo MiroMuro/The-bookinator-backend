@@ -13,7 +13,7 @@ import { join } from "path";
 import { gql } from "graphql-tag";
 import { DocumentNode } from "graphql";
 import * as http from "http";
-import { testUser, ServerType } from "../types/interfaces";
+import { testUser, ServerType, AddBookArgs } from "../types/interfaces";
 import { books } from "./testdata";
 //import exp from "constants";
 dotenv.config();
@@ -33,6 +33,35 @@ const user: testUser = {
 const typeDefs: DocumentNode = gql(
   readFileSync(join("src/", "schema.graphql"), "utf8")
 );
+
+//Helpe function for adding books.
+const createAddBookMutation = (book: AddBookArgs) => {
+  return `mutation {
+    addBook(title: "${book.title}", author: "${book.author}", published: ${
+    book.published
+  }, genres: ${JSON.stringify(book.genres)}){
+      title
+      author {
+        name
+        bookCount
+      }
+      published
+      genres
+    }
+  }
+    `;
+};
+//Query creator function for adding books.
+const addBook = async (mutation: string) => {
+  const response = await request(app)
+    .post("/")
+    .set("Content-Type", "application/json")
+    .set("Authorization", `bearer ${logintoken}`)
+    .send({ query: mutation });
+
+  return response;
+};
+
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri: string = mongoServer.getUri();
@@ -191,28 +220,8 @@ describe("Apollo Server", () => {
     });
     it("Can be added by an authenticated user and Author bookcount is updated correctly", async () => {
       const book = books[0];
-      const mutation = `
-        mutation {
-        addBook(title: "${book.title}", author: "${book.author}", published: ${
-        book.published
-      }, genres: ${JSON.stringify(book.genres)}){
-          title
-          author {
-            name
-            bookCount
-          }
-          published
-          genres
-        }
-      }
-        `;
-
-      const response = await request(app)
-        .post("/")
-        .set("Content-Type", "application/json")
-        .set("Authorization", `bearer ${logintoken}`)
-        .send({ query: mutation });
-
+      const mutation = createAddBookMutation(book);
+      const response = await addBook(mutation);
       const { data } = response.body;
 
       expect(response.status).toBe(200);
@@ -248,7 +257,8 @@ describe("Apollo Server", () => {
         }
       }`;
 
-      const response = await request(app).post("/").send({ query });
+      const response = await request(app).post("/").send({ query: query });
+      console.log("Response: ", response.body);
       const { data } = response.body;
       expect(response.status).toBe(200);
       expect(data).toBeDefined();
@@ -257,7 +267,42 @@ describe("Apollo Server", () => {
       console.log(data.allBooks);
       //console.log(query);
     });
-    it("Can be fetched correctly with a genre filter", async () => {});
+    it("Can be fetched correctly with a genre filter", async () => {
+      //Add some more books to test the genre filter.
+      const secondBook = books[3];
+      const thirdBook = books[4];
+      const secondMutation = createAddBookMutation(secondBook);
+      const thirdMutation = createAddBookMutation(thirdBook);
+      await addBook(secondMutation);
+      await addBook(thirdMutation);
+      const expectedResult = [
+        { ...books[0], author: { name: books[0].author, bookCount: 1 } },
+        { ...books[3], author: { name: books[3].author, bookCount: 1 } },
+      ];
+      const booksByGenreQuery = `
+        query {
+          allBooks(genre: "${"Horror"}"){
+            title
+            author {
+              name
+              bookCount
+            }
+            genres
+            published
+            title
+        }
+      }`;
+      const response = await request(app)
+        .post("/")
+        .send({ query: booksByGenreQuery });
+      console.log("Response: ", response.body);
+      const { data } = response.body;
+      console.log("Data: ", data);
+      const booksWithHorrorGenre = data.allBooks;
+      expect(booksWithHorrorGenre).toHaveLength(2);
+      expect(booksWithHorrorGenre).toEqual(expectedResult);
+      console.log("Books with horror genre: ", booksWithHorrorGenre);
+    });
     it("Can be fetched correctly with an author filter", async () => {});
     it("Can be fetched correctly with a genre and author filter", async () => {});
     describe("Cant be added with", () => {
@@ -526,12 +571,24 @@ describe("Apollo Server", () => {
       const { data } = response.body;
       expect(response.status).toBe(200);
       expect(data).toBeDefined();
-      expect(data.bookCount).toBe(3);
+      expect(data.bookCount).toBe(5);
     });
   });
   describe("Genres", () => {
     it("Can be fetched correctly", async () => {
-      const expectedResult = ["Fantasy", "Horror"];
+      //Get the unique genres from the first 5 books.
+      const uniqueGenres = [
+        ...new Set(
+          books.flatMap((book, index) => {
+            console.log("Book genres: ", book.genres);
+            if (index <= 4) {
+              return book.genres;
+            } else return [];
+          })
+        ),
+      ].sort();
+      console.log("Unique genres: ", uniqueGenres);
+      //const expectedResult = ["Fantasy", "Horror"];
       const mutation = `
       query{allGenres}
       `;
@@ -540,7 +597,7 @@ describe("Apollo Server", () => {
       console.log(data);
       expect(response.status).toBe(200);
       expect(data).toBeDefined();
-      expect(data.allGenres).toEqual(expectedResult);
+      expect(data.allGenres).toEqual(uniqueGenres);
     });
     it("Are updated correctly after adding a book", async () => {
       const book = books[3];
