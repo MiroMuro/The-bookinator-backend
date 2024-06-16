@@ -303,8 +303,67 @@ describe("Apollo Server", () => {
       expect(booksWithHorrorGenre).toEqual(expectedResult);
       console.log("Books with horror genre: ", booksWithHorrorGenre);
     });
-    it("Can be fetched correctly with an author filter", async () => {});
-    it("Can be fetched correctly with a genre and author filter", async () => {});
+    it("Can be fetched correctly with an author filter", async () => {
+      const expectedResult = [
+        { ...books[0], author: { name: books[0].author } },
+        { ...books[2], author: { name: books[2].author } },
+      ];
+      const fourthBook = books[2];
+      const fourthMutation = createAddBookMutation(fourthBook);
+      await addBook(fourthMutation);
+      const booksByAuthorQuery = `
+        query {
+          allBooks(author: "${"Jack Swanson"}"){
+            title
+            author {
+              name
+            }
+            genres
+            published
+            title
+        }
+      }`;
+
+      const response = await request(app)
+        .post("/")
+        .send({ query: booksByAuthorQuery });
+      const { data } = response.body;
+      console.log("Data: ", data);
+      console.log("Result: ", response);
+
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data.allBooks).toHaveLength(2);
+      expect(data.allBooks).toEqual(expectedResult);
+    });
+    it("Can be fetched correctly with both, a genre and an author filter", async () => {
+      const expectedResult = [
+        { ...books[4], author: { name: books[4].author } },
+      ];
+
+      const booksByAuthorQuery = `
+        query {
+          allBooks(author: "${"Miranda Priestly"}",genre: "${"Adventure"}"){
+            title
+            author {
+              name
+            }
+            genres
+            published
+            title
+        }
+      }`;
+
+      const response = await request(app)
+        .post("/")
+        .send({ query: booksByAuthorQuery });
+
+      const { data } = response.body;
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data.allBooks).toHaveLength(1);
+      expect(data.allBooks).toEqual(expectedResult);
+    });
     describe("Cant be added with", () => {
       it("duplicate title and returns corresponsing errors", async () => {
         const book = books[0];
@@ -600,29 +659,18 @@ describe("Apollo Server", () => {
       expect(data.allGenres).toEqual(uniqueGenres);
     });
     it("Are updated correctly after adding a book", async () => {
-      const book = books[3];
-      const expectedResult = ["Fantasy", "Horror", "Sci-Fi"];
-      const mutation = `
-      mutation {
-      addBook(title: "${book.title}", author: "${book.author}",published: ${
-        book.published
-      }, genres: ${JSON.stringify(book.genres)}){
-      title
-      author{
-        name
-        bookCount
-      }
-      published
-      genres
-      }
-    }
-      `;
+      const book = books[5];
+      const uniqueGenres = [
+        ...new Set(
+          books.flatMap((book) => {
+            return book.genres;
+          })
+        ),
+      ].sort();
+      const addBookMutation = createAddBookMutation(book);
+
       const query = `query{allGenres}`;
-      const response = await request(app)
-        .post("/")
-        .set("Content-Type", "application/json")
-        .set("Authorization", `bearer ${logintoken}`)
-        .send({ query: mutation });
+      const response = await addBook(addBookMutation);
 
       const { data } = response.body;
       expect(response.status).toBe(200);
@@ -638,12 +686,49 @@ describe("Apollo Server", () => {
       const queryResponse = await request(app).post("/").send({ query: query });
       const { allGenres } = queryResponse.body.data;
       expect(queryResponse.status).toBe(200);
-      expect(allGenres).toHaveLength(3);
-      expect(allGenres).toEqual(expectedResult);
+      expect(allGenres).toHaveLength(7);
+      expect(allGenres).toEqual(uniqueGenres);
     });
   });
   describe("Author", () => {
-    it("Can be fetched correctly", async () => {});
+    it("Count is updated correctly after adding a book by a new author", async () => {
+      const addBookMutation = createAddBookMutation(books[6]);
+      await addBook(addBookMutation);
+
+      const query = `
+      query{authorCount}
+      `;
+      const response = await request(app).post("/").send({ query: query });
+      const { data } = response.body;
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data.authorCount).toBe(5);
+    });
+    it("Can be fetched correctly", async () => {
+      const uniqueAuthors = books
+        .map((book) => book.author)
+        .reduce<{ name: string }[]>((acc, author) => {
+          if (!acc.find((obj) => obj.name === author)) {
+            acc.push({ name: author });
+          }
+          return acc;
+        }, []);
+
+      console.log("Unique authors: ", uniqueAuthors);
+      const allAuthorsQuery = `
+      query{
+      allAuthors{
+        name
+      }
+    }`;
+      const response = await request(app)
+        .post("/")
+        .send({ query: allAuthorsQuery });
+      const { data } = response.body;
+      console.log(data);
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+    });
     it("Can be edited correctly", async () => {});
     it("Cant be added with a forbidden", async () => {});
   });

@@ -37,4 +37,10 @@ export const books: AddBookArgs[] = [
     published: 1980,
     genres: ["History", "Anthropology"],
   },
+  {
+    title: "The name of the rose",
+    author: "Umberto Eco",
+    published: 1983,
+    genres: ["History"],
+  },
 ];
