@@ -43,4 +43,10 @@ export const books: AddBookArgs[] = [
     published: 1983,
     genres: ["History"],
   },
+  {
+    title: "The ancient pyramids",
+    author: "Jack Swanson",
+    published: 2015,
+    genres: ["History"],
+  },
 ];

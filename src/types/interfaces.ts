@@ -14,6 +14,7 @@ export type ServerType = {
   httpServer: http.Server;
   wsServer: WebSocketServer;
   server: ApolloServer;
+  schema: unknown;
 };
 
 export type AuthorSetBornArgs = {

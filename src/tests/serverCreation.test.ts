@@ -5,9 +5,12 @@ const resolvers = require("../resolver");
 const User = require("../models/User");
 const Book = require("../models/Book");
 const Author = require("../models/Author");
+const { createClient, Client } = require("graphql-ws");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
+const WebSocket = require("ws");
+//const { execute, parse } = require("graphql");
 import { readFileSync } from "fs";
 import { join } from "path";
 import { gql } from "graphql-tag";
@@ -23,13 +26,17 @@ let logintoken: string;
 let mongoServer: typeof MongoMemoryServer;
 let app: Express.Application;
 let httpServer: http.Server;
-
+let serverSetup: ServerType;
 const user: testUser = {
   username: "testUser1",
   password: "testPassword",
   favoriteGenre: "testGenre",
 };
-
+//Websocket client for testing subscriptions.
+const client: typeof Client = createClient({
+  url: `ws://localhost:${process.env.PORT}/`,
+  webSocketImpl: WebSocket,
+});
 const typeDefs: DocumentNode = gql(
   readFileSync(join("src/", "schema.graphql"), "utf8")
 );
@@ -63,6 +70,7 @@ const addBook = async (mutation: string) => {
 };
 
 beforeAll(async () => {
+  //Create a new in-memory Mongodatabase before running tests.
   mongoServer = await MongoMemoryServer.create();
   const uri: string = mongoServer.getUri();
 
@@ -74,22 +82,20 @@ beforeAll(async () => {
   await User.deleteMany({});
   await Book.deleteMany({});
   await Author.deleteMany({});
-
-  const serverSetup: ServerType = await createServer(typeDefs, resolvers);
+  //Setup a new server for testing
+  serverSetup = await createServer(typeDefs, resolvers);
   app = serverSetup.app;
   httpServer = serverSetup.httpServer;
-
   const PORT = process.env.PORT || 4000;
   httpServer.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
   });
-
-  describe("Before tests", () => {});
 });
 
 afterAll(async () => {
   await mongoose.disconnect();
   await mongoServer.stop();
+  //(await wsClient) && wsClient.dispose();
   httpServer.close();
 });
 
@@ -135,7 +141,6 @@ describe("Apollo Server", () => {
         .send({ query: loginMutation });
 
       const { data } = response.body;
-      console.log("Data: ", data);
       expect(response.status).toBe(200);
       expect(data.login.value).toBeDefined();
       logintoken = data.login.value;
@@ -235,6 +240,7 @@ describe("Apollo Server", () => {
       expect(data.addBook.published).toBe(book.published);
       expect(data.addBook.genres).toEqual(book.genres);
     });
+
     it("Can be fetched correctly", async () => {
       //The added book should be the first book in the array.
       //It needs to be added a bookcount property to the author object.
@@ -242,7 +248,6 @@ describe("Apollo Server", () => {
         ...books[0],
         author: { name: books[0].author, bookCount: 1 },
       };
-      console.log("Added book: ", addedBook);
       const query = `
         query {
           allBooks{
@@ -258,13 +263,11 @@ describe("Apollo Server", () => {
       }`;
 
       const response = await request(app).post("/").send({ query: query });
-      console.log("Response: ", response.body);
       const { data } = response.body;
       expect(response.status).toBe(200);
       expect(data).toBeDefined();
       expect(data.allBooks).toBeDefined();
       expect(data.allBooks[0]).toEqual(addedBook);
-      console.log(data.allBooks);
       //console.log(query);
     });
     it("Can be fetched correctly with a genre filter", async () => {
@@ -295,13 +298,10 @@ describe("Apollo Server", () => {
       const response = await request(app)
         .post("/")
         .send({ query: booksByGenreQuery });
-      console.log("Response: ", response.body);
       const { data } = response.body;
-      console.log("Data: ", data);
       const booksWithHorrorGenre = data.allBooks;
       expect(booksWithHorrorGenre).toHaveLength(2);
       expect(booksWithHorrorGenre).toEqual(expectedResult);
-      console.log("Books with horror genre: ", booksWithHorrorGenre);
     });
     it("Can be fetched correctly with an author filter", async () => {
       const expectedResult = [
@@ -328,8 +328,6 @@ describe("Apollo Server", () => {
         .post("/")
         .send({ query: booksByAuthorQuery });
       const { data } = response.body;
-      console.log("Data: ", data);
-      console.log("Result: ", response);
 
       expect(response.status).toBe(200);
       expect(data).toBeDefined();
@@ -402,8 +400,6 @@ describe("Apollo Server", () => {
         expect(errors.extensions.error.message).toBe(
           "BookMongo validation failed: title: Error, expected `title` to be unique. Value: `Oddly Normal`"
         );
-        console.log("Data: ", data);
-        console.log("Errors: ", errors);
       });
       it("empty title and returns corresponsing errors", async () => {
         const book = books[0];
@@ -639,21 +635,18 @@ describe("Apollo Server", () => {
       const uniqueGenres = [
         ...new Set(
           books.flatMap((book, index) => {
-            console.log("Book genres: ", book.genres);
             if (index <= 4) {
               return book.genres;
             } else return [];
           })
         ),
       ].sort();
-      console.log("Unique genres: ", uniqueGenres);
       //const expectedResult = ["Fantasy", "Horror"];
       const mutation = `
       query{allGenres}
       `;
       const response = await request(app).post("/").send({ query: mutation });
       const { data } = response.body;
-      console.log(data);
       expect(response.status).toBe(200);
       expect(data).toBeDefined();
       expect(data.allGenres).toEqual(uniqueGenres);
@@ -714,7 +707,6 @@ describe("Apollo Server", () => {
           return acc;
         }, []);
 
-      console.log("Unique authors: ", uniqueAuthors);
       const allAuthorsQuery = `
       query{
       allAuthors{
@@ -725,12 +717,204 @@ describe("Apollo Server", () => {
         .post("/")
         .send({ query: allAuthorsQuery });
       const { data } = response.body;
-      console.log(data);
       expect(response.status).toBe(200);
       expect(data).toBeDefined();
+      expect(data.allAuthors).toEqual(uniqueAuthors);
     });
-    it("Can be edited correctly", async () => {});
-    it("Cant be added with a forbidden", async () => {});
+    it("Can be edited correctly", async () => {
+      const authorToEdit = books[0].author;
+      const expectedResult = { name: "Jack Swanson", born: 1990 };
+      const editAuthorBornMutation = `mutation{
+        editAuthor(name: "${authorToEdit}", setBornTo: ${1990}){
+          name
+          born
+        }
+      }
+      `;
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: editAuthorBornMutation });
+
+      const { data } = response.body;
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data.editAuthor).toEqual(expectedResult);
+    });
+    it("Cant be edited with a non-existing author", async () => {
+      const authorToEdit = "Non-existing author";
+      const editAuthorBornMutation = `mutation{
+        editAuthor(name: "${authorToEdit}", setBornTo: ${1990}){
+          name
+          born
+        }
+      }
+      `;
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: editAuthorBornMutation });
+
+      const { data } = response.body;
+      const [errors] = response.body.errors;
+      expect(response.status).toBe(200);
+      expect(data.editAuthor).toBeNull();
+      expect(errors.message).toBe("Author not found!");
+      expect(errors.extensions.code).toBe("AUTHOR_NOT_FOUND");
+      //expect(errors.extensions.message).toBe("Author not found!");
+    });
+    it("Cant be edited with a negative birth year", async () => {
+      const authorToEdit = books[0].author;
+      const editAuthorBornMutation = `mutation{
+        editAuthor(name: "${authorToEdit}", setBornTo: ${-1990}){
+          name
+          born
+        }
+      }
+      `;
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: editAuthorBornMutation });
+
+      const { data } = response.body;
+      const [errors] = response.body.errors;
+      expect(response.status).toBe(200);
+      expect(data.editAuthor).toBeNull();
+      expect(errors.message).toBe("Author birth year cant be negative!");
+      expect(errors.extensions.code).toBe("BAD_AUTHOR_BIRTH_YEAR");
+    });
+  });
+  describe("Subscriptions", () => {
+    test("send notification to the client after editing an author", (done) => {
+      client.subscribe(
+        {
+          query: `
+            subscription {
+              authorUpdated {
+                name
+                born
+                bookCount
+                id
+              }
+            }
+          `,
+        },
+        {
+          next(data: unknown) {
+            console.log("Data from subscription: ", data);
+            try {
+              console.log("SASDASDASDASDS");
+              expect(data).toMatchObject({
+                data: {
+                  authorUpdated: {
+                    name: "Jack Swanson",
+                    born: 1990,
+                  },
+                },
+              });
+              done();
+            } catch (error: unknown) {
+              done(error);
+            }
+          },
+          error(err: unknown) {
+            done(err);
+          },
+          complete() {
+            console.log("Subscription completed! ");
+            done();
+            client.dispose();
+          },
+        }
+      );
+
+      setTimeout(async () => {
+        const authorToEdit = books[0].author;
+        const expectedResult = { name: "Jack Swanson", born: 1990 };
+        const editAuthorBornMutation = `mutation{
+          editAuthor(name: "${authorToEdit}", setBornTo: ${1990}){
+            name
+            born
+          }
+        }
+        `;
+        const response = await request(app)
+          .post("/")
+          .set("Content-Type", "application/json")
+          .set("Authorization", `bearer ${logintoken}`)
+          .send({ query: editAuthorBornMutation });
+
+        const { data } = response.body;
+        expect(response.status).toBe(200);
+        expect(data).toBeDefined();
+        expect(data.editAuthor).toEqual(expectedResult);
+      }, 1000);
+    });
+    test("sends notification to the client after adding a book", (done) => {
+      client.subscribe(
+        {
+          query: `
+            subscription {
+              bookAdded {
+                title
+                published
+                author {
+                  name
+                  bookCount
+                }
+                genres
+              }
+            }
+          `,
+        },
+        {
+          next(data: unknown) {
+            console.log("Data from subscription: ", data);
+            try {
+              console.log("SASDASDASDASDS");
+              expect(data).toMatchObject({
+                data: {
+                  bookAdded: {
+                    title: "The ancient pyramids",
+                    published: 2015,
+                    author: {
+                      name: "Jack Swanson",
+                      bookCount: 4,
+                    },
+                    genres: ["History"],
+                  },
+                },
+              });
+              done();
+            } catch (error: unknown) {
+              done(error);
+            }
+          },
+          error(err: unknown) {
+            done(err);
+          },
+          complete() {
+            console.log("Subscription completed! ");
+            done();
+            client.dispose();
+          },
+        }
+      );
+
+      setTimeout(async () => {
+        const bookToAdd = books[7];
+        const addBookMutation = createAddBookMutation(bookToAdd);
+        const res = await addBook(addBookMutation);
+        const { data } = res.body;
+
+        expect(res.status).toBe(200);
+        expect(data).toBeDefined();
+      }, 1000);
+    });
   });
 });
 export {};

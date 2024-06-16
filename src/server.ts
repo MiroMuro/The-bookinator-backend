@@ -114,7 +114,7 @@ const createServer = async (
     })
   );
 
-  return { server, app, httpServer, wsServer };
+  return { server, app, httpServer, wsServer, schema };
 };
 
 module.exports = { createServer, InitializeMongoDB };

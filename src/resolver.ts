@@ -13,7 +13,6 @@ import {
   AuthorSetBornArgs,
   UserMongoDB,
   AddBookArgs,
-  /*UserInfo,*/
   LoginArgs,
   CreateUserArgs,
 } from "./types/interfaces";
@@ -202,6 +201,21 @@ const resolver = {
       try {
         authenticateUser(context);
         //Remember to populate the bookCount field. Will return null if not populated.
+
+        if (!args.setBornTo) {
+          throw new GraphQLError("Birth year must be provided.", {
+            extensions: {
+              code: "BAD_USER_INPUT",
+            },
+          });
+        }
+        if (args.setBornTo < 0)
+          throw new GraphQLError("Author birth year cant be negative!", {
+            extensions: {
+              code: "BAD_AUTHOR_BIRTH_YEAR",
+            },
+          });
+
         const updatedAuthor = await AuthorMongo.findOneAndUpdate(
           { name: args.name },
           { $set: { born: args.setBornTo } },
@@ -209,7 +223,7 @@ const resolver = {
         ).populate("bookCount");
 
         if (!updatedAuthor) {
-          throw new GraphQLError("Author not found!. ", {
+          throw new GraphQLError("Author not found!", {
             extensions: {
               code: "AUTHOR_NOT_FOUND",
             },
@@ -219,6 +233,7 @@ const resolver = {
         pubsub.publish("AUTHOR_UPDATED", { authorUpdated: updatedAuthor });
         return updatedAuthor;
       } catch (error) {
+        if (error instanceof GraphQLError) throw error;
         throw new GraphQLError("Editing user failed. ", {
           extensions: {
             code: "BAD_USER_INPUT || AUTHOR_NOT_FOUND",
@@ -288,7 +303,6 @@ const resolver = {
         };
       } catch (error) {
         //If a GraphQLError is thrown within the try block, it is rethrown in the catch block.
-        console.log("Error during login: ", error);
         if (error instanceof GraphQLError) {
           throw error;
         }
@@ -301,20 +315,6 @@ const resolver = {
         });
       }
     },
-    /*logout: (parent, args, context) => {
-      // If you're using sessions, you can destroy the session here.
-      if (context.req && context.req.session) {
-        context.req.session.destroy((err) => {
-          if (err) {
-            throw new Error("Failed to log out");
-          }
-        });
-      }
-
-      // Invalidate JWT token by simply returning true since it's stateless.
-      // Actual invalidation should be handled on the client-side by removing the token.
-      return true;
-    },*/
   },
   Subscription: {
     bookAdded: {
