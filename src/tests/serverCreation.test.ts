@@ -641,7 +641,6 @@ describe("Apollo Server", () => {
           })
         ),
       ].sort();
-      //const expectedResult = ["Fantasy", "Horror"];
       const mutation = `
       query{allGenres}
       `;
