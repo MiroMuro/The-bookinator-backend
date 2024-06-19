@@ -190,14 +190,15 @@ describe("Apollo Server", () => {
       expect(errors.extensions.invalidArgs).toBe("wrongPassword");
     });
   });
-  describe("A book", () => {
-    it("CANT be added by an unauthenticated user, and returns correct errors.", async () => {
-      const book = books[0];
-      const mutation = `
+});
+describe("A book", () => {
+  it("CANT be added by an unauthenticated user, and returns correct errors.", async () => {
+    const book = books[0];
+    const mutation = `
       mutation {
       addBook(title: "${book.title}", author: "${book.author}", published: ${
-        book.published
-      }, genres: ${JSON.stringify(book.genres)}){
+      book.published
+    }, genres: ${JSON.stringify(book.genres)}){
         title
         author {
           name
@@ -208,47 +209,47 @@ describe("Apollo Server", () => {
       }
     }
       `;
-      //Omit the authorization token, to simulate an unauthenticated user.
-      //e.g an user that is not logged in.
-      const response = await request(app)
-        .post("/")
-        .set("Content-Type", "application/json")
-        .send({ query: mutation });
+    //Omit the authorization token, to simulate an unauthenticated user.
+    //e.g an user that is not logged in.
+    const response = await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .send({ query: mutation });
 
-      const { data } = response.body;
-      const [errors] = response.body.errors;
-      expect(response.status).toBe(200);
-      expect(errors.message).toBe("User not authenticated.");
-      expect(errors.extensions.code).toBe("UNAUTHENTICATED_USER");
-      expect(errors.extensions.message).toBe("Authenticate yourself first.");
-      expect(data.value).toBeUndefined();
+    const { data } = response.body;
+    const [errors] = response.body.errors;
+    expect(response.status).toBe(200);
+    expect(errors.message).toBe("User not authenticated.");
+    expect(errors.extensions.code).toBe("UNAUTHENTICATED_USER");
+    expect(errors.extensions.message).toBe("Authenticate yourself first.");
+    expect(data.value).toBeUndefined();
+  });
+  it("Can be added by an authenticated user and Author bookcount is updated correctly", async () => {
+    const book = books[0];
+    const mutation = createAddBookMutation(book);
+    const response = await addBook(mutation);
+    const { data } = response.body;
+
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.addBook).toBeDefined();
+    expect(data.addBook.title).toBe(book.title);
+    expect(data.addBook.author).toStrictEqual({
+      name: book.author,
+      bookCount: 1,
     });
-    it("Can be added by an authenticated user and Author bookcount is updated correctly", async () => {
-      const book = books[0];
-      const mutation = createAddBookMutation(book);
-      const response = await addBook(mutation);
-      const { data } = response.body;
+    expect(data.addBook.published).toBe(book.published);
+    expect(data.addBook.genres).toEqual(book.genres);
+  });
 
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.addBook).toBeDefined();
-      expect(data.addBook.title).toBe(book.title);
-      expect(data.addBook.author).toStrictEqual({
-        name: book.author,
-        bookCount: 1,
-      });
-      expect(data.addBook.published).toBe(book.published);
-      expect(data.addBook.genres).toEqual(book.genres);
-    });
-
-    it("Can be fetched correctly", async () => {
-      //The added book should be the first book in the array.
-      //It needs to be added a bookcount property to the author object.
-      const addedBook = {
-        ...books[0],
-        author: { name: books[0].author, bookCount: 1 },
-      };
-      const query = `
+  it("Can be fetched correctly", async () => {
+    //The added book should be the first book in the array.
+    //It needs to be added a bookcount property to the author object.
+    const addedBook = {
+      ...books[0],
+      author: { name: books[0].author, bookCount: 1 },
+    };
+    const query = `
         query {
           allBooks{
             title
@@ -262,27 +263,27 @@ describe("Apollo Server", () => {
         }
       }`;
 
-      const response = await request(app).post("/").send({ query: query });
-      const { data } = response.body;
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.allBooks).toBeDefined();
-      expect(data.allBooks[0]).toEqual(addedBook);
-      //console.log(query);
-    });
-    it("Can be fetched correctly with a genre filter", async () => {
-      //Add some more books to test the genre filter.
-      const secondBook = books[3];
-      const thirdBook = books[4];
-      const secondMutation = createAddBookMutation(secondBook);
-      const thirdMutation = createAddBookMutation(thirdBook);
-      await addBook(secondMutation);
-      await addBook(thirdMutation);
-      const expectedResult = [
-        { ...books[0], author: { name: books[0].author, bookCount: 1 } },
-        { ...books[3], author: { name: books[3].author, bookCount: 1 } },
-      ];
-      const booksByGenreQuery = `
+    const response = await request(app).post("/").send({ query: query });
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.allBooks).toBeDefined();
+    expect(data.allBooks[0]).toEqual(addedBook);
+    //console.log(query);
+  });
+  it("Can be fetched correctly with a genre filter", async () => {
+    //Add some more books to test the genre filter.
+    const secondBook = books[3];
+    const thirdBook = books[4];
+    const secondMutation = createAddBookMutation(secondBook);
+    const thirdMutation = createAddBookMutation(thirdBook);
+    await addBook(secondMutation);
+    await addBook(thirdMutation);
+    const expectedResult = [
+      { ...books[0], author: { name: books[0].author, bookCount: 1 } },
+      { ...books[3], author: { name: books[3].author, bookCount: 1 } },
+    ];
+    const booksByGenreQuery = `
         query {
           allBooks(genre: "${"Horror"}"){
             title
@@ -295,23 +296,23 @@ describe("Apollo Server", () => {
             title
         }
       }`;
-      const response = await request(app)
-        .post("/")
-        .send({ query: booksByGenreQuery });
-      const { data } = response.body;
-      const booksWithHorrorGenre = data.allBooks;
-      expect(booksWithHorrorGenre).toHaveLength(2);
-      expect(booksWithHorrorGenre).toEqual(expectedResult);
-    });
-    it("Can be fetched correctly with an author filter", async () => {
-      const expectedResult = [
-        { ...books[0], author: { name: books[0].author } },
-        { ...books[2], author: { name: books[2].author } },
-      ];
-      const fourthBook = books[2];
-      const fourthMutation = createAddBookMutation(fourthBook);
-      await addBook(fourthMutation);
-      const booksByAuthorQuery = `
+    const response = await request(app)
+      .post("/")
+      .send({ query: booksByGenreQuery });
+    const { data } = response.body;
+    const booksWithHorrorGenre = data.allBooks;
+    expect(booksWithHorrorGenre).toHaveLength(2);
+    expect(booksWithHorrorGenre).toEqual(expectedResult);
+  });
+  it("Can be fetched correctly with an author filter", async () => {
+    const expectedResult = [
+      { ...books[0], author: { name: books[0].author } },
+      { ...books[2], author: { name: books[2].author } },
+    ];
+    const fourthBook = books[2];
+    const fourthMutation = createAddBookMutation(fourthBook);
+    await addBook(fourthMutation);
+    const booksByAuthorQuery = `
         query {
           allBooks(author: "${"Jack Swanson"}"){
             title
@@ -324,22 +325,20 @@ describe("Apollo Server", () => {
         }
       }`;
 
-      const response = await request(app)
-        .post("/")
-        .send({ query: booksByAuthorQuery });
-      const { data } = response.body;
+    const response = await request(app)
+      .post("/")
+      .send({ query: booksByAuthorQuery });
+    const { data } = response.body;
 
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.allBooks).toHaveLength(2);
-      expect(data.allBooks).toEqual(expectedResult);
-    });
-    it("Can be fetched correctly with both, a genre and an author filter", async () => {
-      const expectedResult = [
-        { ...books[4], author: { name: books[4].author } },
-      ];
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.allBooks).toHaveLength(2);
+    expect(data.allBooks).toEqual(expectedResult);
+  });
+  it("Can be fetched correctly with both, a genre and an author filter", async () => {
+    const expectedResult = [{ ...books[4], author: { name: books[4].author } }];
 
-      const booksByAuthorQuery = `
+    const booksByAuthorQuery = `
         query {
           allBooks(author: "${"Miranda Priestly"}",genre: "${"Adventure"}"){
             title
@@ -352,24 +351,24 @@ describe("Apollo Server", () => {
         }
       }`;
 
-      const response = await request(app)
-        .post("/")
-        .send({ query: booksByAuthorQuery });
+    const response = await request(app)
+      .post("/")
+      .send({ query: booksByAuthorQuery });
 
-      const { data } = response.body;
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.allBooks).toHaveLength(1);
-      expect(data.allBooks).toEqual(expectedResult);
-    });
-    describe("Cant be added with", () => {
-      it("duplicate title and returns corresponsing errors", async () => {
-        const book = books[0];
-        const mutation = `
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.allBooks).toHaveLength(1);
+    expect(data.allBooks).toEqual(expectedResult);
+  });
+  describe("Cant be added with", () => {
+    it("duplicate title and returns corresponsing errors", async () => {
+      const book = books[0];
+      const mutation = `
         mutation {
         addBook(title: "${book.title}", author: "${book.author}", published: ${
-          book.published
-        }, genres: ${JSON.stringify(book.genres)}){
+        book.published
+      }, genres: ${JSON.stringify(book.genres)}){
           title
           author {
             name
@@ -381,33 +380,33 @@ describe("Apollo Server", () => {
       }
         `;
 
-        const response = await request(app)
-          .post("/")
-          .set("Content-Type", "application/json")
-          .set("Authorization", `bearer ${logintoken}`)
-          .send({ query: mutation });
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: mutation });
 
-        const { data } = response.body;
-        const [errors] = response.body.errors;
-        expect(response.status).toBe(200);
-        expect(data.value).toBeUndefined();
-        expect(errors.message).toBe("Creating a book failed!");
-        expect(errors.extensions.code).toBe("DUPLICATE_BOOK_TITLE");
-        expect(errors.extensions.error._message).toBe(
-          "BookMongo validation failed"
-        );
-        expect(errors.extensions.error.name).toBe("ValidationError");
-        expect(errors.extensions.error.message).toBe(
-          "BookMongo validation failed: title: Error, expected `title` to be unique. Value: `Oddly Normal`"
-        );
-      });
-      it("empty title and returns corresponsing errors", async () => {
-        const book = books[0];
-        const mutation = `
+      const { data } = response.body;
+      const [errors] = response.body.errors;
+      expect(response.status).toBe(200);
+      expect(data.value).toBeUndefined();
+      expect(errors.message).toBe("Creating a book failed!");
+      expect(errors.extensions.code).toBe("DUPLICATE_BOOK_TITLE");
+      expect(errors.extensions.error._message).toBe(
+        "BookMongo validation failed"
+      );
+      expect(errors.extensions.error.name).toBe("ValidationError");
+      expect(errors.extensions.error.message).toBe(
+        "BookMongo validation failed: title: Error, expected `title` to be unique. Value: `Oddly Normal`"
+      );
+    });
+    it("empty title and returns corresponsing errors", async () => {
+      const book = books[0];
+      const mutation = `
         mutation {
         addBook(title: "${""}", author: "${book.author}", published: ${
-          book.published
-        }, genres: ${JSON.stringify(book.genres)}){
+        book.published
+      }, genres: ${JSON.stringify(book.genres)}){
           title
           author {
             name
@@ -419,27 +418,27 @@ describe("Apollo Server", () => {
       }
         `;
 
-        const response = await request(app)
-          .post("/")
-          .set("Content-Type", "application/json")
-          .set("Authorization", `bearer ${logintoken}`)
-          .send({ query: mutation });
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: mutation });
 
-        const { data } = response.body;
-        const [errors] = response.body.errors;
-        expect(response.status).toBe(200);
-        expect(data.value).toBeUndefined();
-        expect(errors.message).toBe("Creating a book failed!");
-        expect(errors.extensions.message).toBe("Book title too short!");
-        expect(errors.extensions.code).toBe("BAD_BOOK_TITLE");
-      });
-      it("empty author and returns corresponsing errors", async () => {
-        const book = books[0];
-        const mutation = `
+      const { data } = response.body;
+      const [errors] = response.body.errors;
+      expect(response.status).toBe(200);
+      expect(data.value).toBeUndefined();
+      expect(errors.message).toBe("Creating a book failed!");
+      expect(errors.extensions.message).toBe("Book title too short!");
+      expect(errors.extensions.code).toBe("BAD_BOOK_TITLE");
+    });
+    it("empty author and returns corresponsing errors", async () => {
+      const book = books[0];
+      const mutation = `
         mutation {
         addBook(title: "${book.title}", author: "${""}", published: ${
-          book.published
-        }, genres: ${JSON.stringify(book.genres)}){
+        book.published
+      }, genres: ${JSON.stringify(book.genres)}){
           title
           author {
             name
@@ -450,27 +449,27 @@ describe("Apollo Server", () => {
         }
       }
         `;
-        const response = await request(app)
-          .post("/")
-          .set("Content-Type", "application/json")
-          .set("Authorization", `bearer ${logintoken}`)
-          .send({ query: mutation });
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: mutation });
 
-        const { data } = response.body;
-        const [errors] = response.body.errors;
-        expect(response.status).toBe(200);
-        expect(data.value).toBeUndefined();
-        expect(errors.message).toBe("Creating a book failed!");
-        expect(errors.extensions.message).toBe("Author name too short!");
-        expect(errors.extensions.code).toBe("BAD_AUTHOR_NAME");
-      });
-      it("empty published and returns corresponsing errors", async () => {
-        const book = books[0];
-        const mutation = `
+      const { data } = response.body;
+      const [errors] = response.body.errors;
+      expect(response.status).toBe(200);
+      expect(data.value).toBeUndefined();
+      expect(errors.message).toBe("Creating a book failed!");
+      expect(errors.extensions.message).toBe("Author name too short!");
+      expect(errors.extensions.code).toBe("BAD_AUTHOR_NAME");
+    });
+    it("empty published and returns corresponsing errors", async () => {
+      const book = books[0];
+      const mutation = `
         mutation {
         addBook(title: "${book.title}", author: "${
-          book.author
-        }", published: ${undefined}, genres: ${JSON.stringify(book.genres)}){
+        book.author
+      }", published: ${undefined}, genres: ${JSON.stringify(book.genres)}){
           title 
           author {
             name
@@ -481,29 +480,29 @@ describe("Apollo Server", () => {
         }
       }
         `;
-        const response = await request(app)
-          .post("/")
-          .set("Content-Type", "application/json")
-          .set("Authorization", `bearer ${logintoken}`)
-          .send({ query: mutation });
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: mutation });
 
-        const { data } = response.body;
-        const [errors] = response.body.errors;
-        expect(response.status).toBe(400);
-        expect(data).toBeUndefined();
-        expect(errors.message).toBe(
-          "Int cannot represent non-integer value: undefined"
-        );
-        expect(errors.extensions.code).toBe("GRAPHQL_VALIDATION_FAILED");
-        //expect(errors.extensions.code).toBe("BAD_BOOK_PUBLICATION_DATE");
-      });
-      it("negative publication year and returns corresponsing errors", async () => {
-        const book = books[0];
-        const mutation = `
+      const { data } = response.body;
+      const [errors] = response.body.errors;
+      expect(response.status).toBe(400);
+      expect(data).toBeUndefined();
+      expect(errors.message).toBe(
+        "Int cannot represent non-integer value: undefined"
+      );
+      expect(errors.extensions.code).toBe("GRAPHQL_VALIDATION_FAILED");
+      //expect(errors.extensions.code).toBe("BAD_BOOK_PUBLICATION_DATE");
+    });
+    it("negative publication year and returns corresponsing errors", async () => {
+      const book = books[0];
+      const mutation = `
         mutation {
         addBook(title: "${book.title}", author: "${
-          book.author
-        }", published: ${-2000}, genres: ${JSON.stringify(book.genres)}){
+        book.author
+      }", published: ${-2000}, genres: ${JSON.stringify(book.genres)}){
           title 
           author {
             name
@@ -514,31 +513,31 @@ describe("Apollo Server", () => {
         }
       }
         `;
-        const response = await request(app)
-          .post("/")
-          .set("Content-Type", "application/json")
-          .set("Authorization", `bearer ${logintoken}`)
-          .send({ query: mutation });
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: mutation });
 
-        const { data } = response.body;
-        const [errors] = response.body.errors;
-        // console.log("Response: ", data);
-        //c onsole.log("Errors: ", errors);
-        expect(response.status).toBe(200);
-        expect(data.value).toBeUndefined();
-        expect(errors.message).toBe("Creating a book failed!");
-        expect(errors.extensions.message).toBe(
-          "Publication date cant be negative!"
-        );
-        expect(errors.extensions.code).toBe("BAD_BOOK_PUBLICATION_DATE");
-      });
-      it("empty genres and returns corresponsing errors", async () => {
-        const book = books[0];
-        const mutation = `
+      const { data } = response.body;
+      const [errors] = response.body.errors;
+      // console.log("Response: ", data);
+      //c onsole.log("Errors: ", errors);
+      expect(response.status).toBe(200);
+      expect(data.value).toBeUndefined();
+      expect(errors.message).toBe("Creating a book failed!");
+      expect(errors.extensions.message).toBe(
+        "Publication date cant be negative!"
+      );
+      expect(errors.extensions.code).toBe("BAD_BOOK_PUBLICATION_DATE");
+    });
+    it("empty genres and returns corresponsing errors", async () => {
+      const book = books[0];
+      const mutation = `
         mutation {
         addBook(title: "${book.title}", author: "${book.author}",published: ${
-          book.published
-        }, genres: ${JSON.stringify([])}){
+        book.published
+      }, genres: ${JSON.stringify([])}){
         title
         author{
           name
@@ -549,35 +548,35 @@ describe("Apollo Server", () => {
         }
       }
         `;
-        const response = await request(app)
-          .post("/")
-          .set("Content-Type", "application/json")
-          .set("Authorization", `bearer ${logintoken}`)
-          .send({ query: mutation });
+      const response = await request(app)
+        .post("/")
+        .set("Content-Type", "application/json")
+        .set("Authorization", `bearer ${logintoken}`)
+        .send({ query: mutation });
 
-        const { data } = response.body;
-        const [errors] = response.body.errors;
-        expect(response.status).toBe(200);
-        expect(data.value).toBeUndefined();
-        expect(errors.message).toBe("Creating a book failed!");
-        expect(errors.extensions.message).toBe(
-          "Book must have at least one genre!"
-        );
-        expect(errors.extensions.code).toBe("BAD_BOOK_GENRES");
-      });
+      const { data } = response.body;
+      const [errors] = response.body.errors;
+      expect(response.status).toBe(200);
+      expect(data.value).toBeUndefined();
+      expect(errors.message).toBe("Creating a book failed!");
+      expect(errors.extensions.message).toBe(
+        "Book must have at least one genre!"
+      );
+      expect(errors.extensions.code).toBe("BAD_BOOK_GENRES");
     });
   });
-  describe("Amount of books ", () => {
-    it("is updated correctly after adding books", async () => {
-      const secondBook = books[1];
-      const thirdBook = books[2];
-      const secondMutation = `
+});
+describe("Amount of books ", () => {
+  it("is updated correctly after adding books", async () => {
+    const secondBook = books[1];
+    const thirdBook = books[2];
+    const secondMutation = `
         mutation {
         addBook(title: "${secondBook.title}", author: "${
-        secondBook.author
-      }",published: ${secondBook.published}, genres: ${JSON.stringify(
-        secondBook.genres
-      )}){
+      secondBook.author
+    }",published: ${secondBook.published}, genres: ${JSON.stringify(
+      secondBook.genres
+    )}){
         title
         author{
           name
@@ -588,13 +587,13 @@ describe("Apollo Server", () => {
         }
       }
         `;
-      const thirdMutation = `
+    const thirdMutation = `
         mutation {
         addBook(title: "${thirdBook.title}", author: "${
-        thirdBook.author
-      }",published: ${thirdBook.published}, genres: ${JSON.stringify(
-        thirdBook.genres
-      )}){
+      thirdBook.author
+    }",published: ${thirdBook.published}, genres: ${JSON.stringify(
+      thirdBook.genres
+    )}){
       title
       author{
         name
@@ -605,208 +604,215 @@ describe("Apollo Server", () => {
       }
     }
         `;
-      const bookCountQuery = `query{bookCount}`;
+    const bookCountQuery = `query{bookCount}`;
 
-      //Add two more books
-      await request(app)
-        .post("/")
-        .set("Content-Type", "application/json")
-        .set("Authorization", `bearer ${logintoken}`)
-        .send({ query: secondMutation });
-      await request(app)
-        .post("/")
-        .set("Content-Type", "application/json")
-        .set("Authorization", `bearer ${logintoken}`)
-        .send({ query: thirdMutation });
+    //Add two more books
+    await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `bearer ${logintoken}`)
+      .send({ query: secondMutation });
+    await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `bearer ${logintoken}`)
+      .send({ query: thirdMutation });
 
-      const response = await request(app)
-        .post("/")
-        .send({ query: bookCountQuery });
+    const response = await request(app)
+      .post("/")
+      .send({ query: bookCountQuery });
 
-      const { data } = response.body;
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.bookCount).toBe(5);
-    });
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.bookCount).toBe(5);
   });
-  describe("Genres", () => {
-    it("Can be fetched correctly", async () => {
-      //Get the unique genres from the first 5 books.
-      const uniqueGenres = [
-        ...new Set(
-          books.flatMap((book, index) => {
-            if (index <= 4) {
-              return book.genres;
-            } else return [];
-          })
-        ),
-      ].sort();
-      const mutation = `
+});
+describe("Genres", () => {
+  it("Can be fetched correctly", async () => {
+    //Get the unique genres from the first 5 books.
+    const uniqueGenres = [
+      ...new Set(
+        books.flatMap((book, index) => {
+          if (index <= 4) {
+            return book.genres;
+          } else return [];
+        })
+      ),
+    ].sort();
+    const mutation = `
       query{allGenres}
       `;
-      const response = await request(app).post("/").send({ query: mutation });
-      const { data } = response.body;
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.allGenres).toEqual(uniqueGenres);
-    });
-    it("Are updated correctly after adding a book", async () => {
-      const book = books[5];
-      const uniqueGenres = [
-        ...new Set(
-          books.flatMap((book) => {
-            return book.genres;
-          })
-        ),
-      ].sort();
-      const addBookMutation = createAddBookMutation(book);
-
-      const query = `query{allGenres}`;
-      const response = await addBook(addBookMutation);
-
-      const { data } = response.body;
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.addBook.title).toBe(book.title);
-      expect(data.addBook.author).toStrictEqual({
-        name: book.author,
-        bookCount: 1,
-      });
-      expect(data.addBook.published).toBe(book.published);
-      expect(data.addBook.genres).toEqual(book.genres);
-
-      const queryResponse = await request(app).post("/").send({ query: query });
-      const { allGenres } = queryResponse.body.data;
-      expect(queryResponse.status).toBe(200);
-      expect(allGenres).toHaveLength(7);
-      expect(allGenres).toEqual(uniqueGenres);
-    });
+    const response = await request(app).post("/").send({ query: mutation });
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.allGenres).toEqual(uniqueGenres);
   });
-  describe("Author", () => {
-    it("Count is updated correctly after adding a book by a new author", async () => {
-      const addBookMutation = createAddBookMutation(books[6]);
-      await addBook(addBookMutation);
+  it("Are updated correctly after adding a book", async () => {
+    const book = books[5];
+    const uniqueGenres = [
+      ...new Set(
+        books.flatMap((book) => {
+          return book.genres;
+        })
+      ),
+    ].sort();
+    const addBookMutation = createAddBookMutation(book);
 
-      const query = `
+    const query = `query{allGenres}`;
+    const response = await addBook(addBookMutation);
+
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.addBook.title).toBe(book.title);
+    expect(data.addBook.author).toStrictEqual({
+      name: book.author,
+      bookCount: 1,
+    });
+    expect(data.addBook.published).toBe(book.published);
+    expect(data.addBook.genres).toEqual(book.genres);
+
+    const queryResponse = await request(app).post("/").send({ query: query });
+    const { allGenres } = queryResponse.body.data;
+    expect(queryResponse.status).toBe(200);
+    expect(allGenres).toHaveLength(7);
+    expect(allGenres).toEqual(uniqueGenres);
+  });
+});
+describe("Author", () => {
+  it("Count is updated correctly after adding a book by a new author", async () => {
+    const addBookMutation = createAddBookMutation(books[6]);
+    await addBook(addBookMutation);
+
+    const query = `
       query{authorCount}
       `;
-      const response = await request(app).post("/").send({ query: query });
-      const { data } = response.body;
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.authorCount).toBe(5);
-    });
-    it("Can be fetched correctly", async () => {
-      const uniqueAuthors = books
-        .map((book) => book.author)
-        .reduce<{ name: string }[]>((acc, author) => {
-          if (!acc.find((obj) => obj.name === author)) {
-            acc.push({ name: author });
-          }
-          return acc;
-        }, []);
+    const response = await request(app).post("/").send({ query: query });
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.authorCount).toBe(5);
+  });
+  it("Can be fetched correctly", async () => {
+    const uniqueAuthors = books
+      .map((book) => book.author)
+      .reduce<{ name: string }[]>((acc, author) => {
+        if (!acc.find((obj) => obj.name === author)) {
+          acc.push({ name: author });
+        }
+        return acc;
+      }, []);
 
-      const allAuthorsQuery = `
+    const allAuthorsQuery = `
       query{
       allAuthors{
         name
       }
     }`;
-      const response = await request(app)
-        .post("/")
-        .send({ query: allAuthorsQuery });
-      const { data } = response.body;
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.allAuthors).toEqual(uniqueAuthors);
-    });
-    it("Can be edited correctly", async () => {
-      const authorToEdit = books[0].author;
-      const expectedResult = { name: "Jack Swanson", born: 1990 };
-      const editAuthorBornMutation = `mutation{
+    const response = await request(app)
+      .post("/")
+      .send({ query: allAuthorsQuery });
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.allAuthors).toEqual(uniqueAuthors);
+  });
+  it("Can be edited correctly", async () => {
+    const authorToEdit = books[0].author;
+    const expectedResult = { name: "Jack Swanson", born: 1990 };
+    const editAuthorBornMutation = `mutation{
         editAuthor(name: "${authorToEdit}", setBornTo: ${1990}){
           name
           born
         }
       }
       `;
-      const response = await request(app)
-        .post("/")
-        .set("Content-Type", "application/json")
-        .set("Authorization", `bearer ${logintoken}`)
-        .send({ query: editAuthorBornMutation });
+    const response = await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `bearer ${logintoken}`)
+      .send({ query: editAuthorBornMutation });
 
-      const { data } = response.body;
-      expect(response.status).toBe(200);
-      expect(data).toBeDefined();
-      expect(data.editAuthor).toEqual(expectedResult);
-    });
-    it("Cant be edited with a non-existing author", async () => {
-      const authorToEdit = "Non-existing author";
-      const editAuthorBornMutation = `mutation{
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.editAuthor).toEqual(expectedResult);
+  });
+  it("Cant be edited with a non-existing author", async () => {
+    const authorToEdit = "Non-existing author";
+    const editAuthorBornMutation = `mutation{
         editAuthor(name: "${authorToEdit}", setBornTo: ${1990}){
           name
           born
         }
       }
       `;
-      const response = await request(app)
-        .post("/")
-        .set("Content-Type", "application/json")
-        .set("Authorization", `bearer ${logintoken}`)
-        .send({ query: editAuthorBornMutation });
+    const response = await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `bearer ${logintoken}`)
+      .send({ query: editAuthorBornMutation });
 
-      const { data } = response.body;
-      const [errors] = response.body.errors;
-      expect(response.status).toBe(200);
-      expect(data.editAuthor).toBeNull();
-      expect(errors.message).toBe("Author not found!");
-      expect(errors.extensions.code).toBe("AUTHOR_NOT_FOUND");
-      //expect(errors.extensions.message).toBe("Author not found!");
-    });
-    it("Cant be edited with a negative birth year", async () => {
-      const authorToEdit = books[0].author;
-      const editAuthorBornMutation = `mutation{
+    const { data } = response.body;
+    const [errors] = response.body.errors;
+    expect(response.status).toBe(200);
+    expect(data.editAuthor).toBeNull();
+    expect(errors.message).toBe("Author not found!");
+    expect(errors.extensions.code).toBe("AUTHOR_NOT_FOUND");
+    //expect(errors.extensions.message).toBe("Author not found!");
+  });
+  it("Cant be edited with a negative birth year", async () => {
+    const authorToEdit = books[0].author;
+    const editAuthorBornMutation = `mutation{
         editAuthor(name: "${authorToEdit}", setBornTo: ${-1990}){
           name
           born
         }
       }
       `;
-      const response = await request(app)
-        .post("/")
-        .set("Content-Type", "application/json")
-        .set("Authorization", `bearer ${logintoken}`)
-        .send({ query: editAuthorBornMutation });
+    const response = await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `bearer ${logintoken}`)
+      .send({ query: editAuthorBornMutation });
 
-      const { data } = response.body;
-      const [errors] = response.body.errors;
-      expect(response.status).toBe(200);
-      expect(data.editAuthor).toBeNull();
-      expect(errors.message).toBe("Author birth year cant be negative!");
-      expect(errors.extensions.code).toBe("BAD_AUTHOR_BIRTH_YEAR");
-    });
+    const { data } = response.body;
+    const [errors] = response.body.errors;
+    expect(response.status).toBe(200);
+    expect(data.editAuthor).toBeNull();
+    expect(errors.message).toBe("Author birth year cant be negative!");
+    expect(errors.extensions.code).toBe("BAD_AUTHOR_BIRTH_YEAR");
   });
-  describe("Subscriptions", () => {
-    test("send notification to the client after editing an author", (done) => {
+});
+describe("Subscriptions", () => {
+  // let subscription: PushSubscription;
+  afterAll(() => {
+    if (client) {
+      client.dispose();
+    }
+  });
+  test("send notification to the client after editing an author", async () => {
+    // Create a promise to wait for the subscription's next callback
+    const dataPromise = new Promise((resolve, reject) => {
       client.subscribe(
         {
           query: `
-            subscription {
-              authorUpdated {
-                name
-                born
-                bookCount
-                id
+              subscription {
+                authorUpdated {
+                  name
+                  born
+                  bookCount
+                  id
+                }
               }
-            }
-          `,
+            `,
         },
         {
           next(data: unknown) {
             console.log("Data from subscription: ", data);
             try {
-              console.log("SASDASDASDASDS");
               expect(data).toMatchObject({
                 data: {
                   authorUpdated: {
@@ -815,60 +821,66 @@ describe("Apollo Server", () => {
                   },
                 },
               });
-              done();
+              resolve(data); // Resolve the promise if expectations pass
             } catch (error: unknown) {
-              done(error);
+              reject(error); // Reject the promise if expectations fail
             }
           },
           error(err: unknown) {
-            done(err);
+            reject(err); // Reject the promise if there's an error
           },
           complete() {
-            console.log("Subscription completed! ");
-            done();
-            client.dispose();
+            console.log("Subscription completed!");
           },
         }
       );
-
-      setTimeout(async () => {
-        const authorToEdit = books[0].author;
-        const expectedResult = { name: "Jack Swanson", born: 1990 };
-        const editAuthorBornMutation = `mutation{
-          editAuthor(name: "${authorToEdit}", setBornTo: ${1990}){
-            name
-            born
-          }
-        }
-        `;
-        const response = await request(app)
-          .post("/")
-          .set("Content-Type", "application/json")
-          .set("Authorization", `bearer ${logintoken}`)
-          .send({ query: editAuthorBornMutation });
-
-        const { data } = response.body;
-        expect(response.status).toBe(200);
-        expect(data).toBeDefined();
-        expect(data.editAuthor).toEqual(expectedResult);
-      }, 1000);
     });
-    test("sends notification to the client after adding a book", (done) => {
+    //wait for the subscription to be ready
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Perform the mutation
+
+    const authorToEdit = books[0].author;
+    const expectedResult = { name: "Jack Swanson", born: 1990 };
+    const editAuthorBornMutation = `mutation{
+        editAuthor(name: "${authorToEdit}", setBornTo: ${1990}){
+          name
+          born
+        }
+      }
+      `;
+
+    const response = await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `bearer ${logintoken}`)
+      .send({ query: editAuthorBornMutation });
+
+    const { data } = response.body;
+    console.log("Response: ", data);
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.editAuthor).toEqual(expectedResult);
+
+    // Wait for the subscription data to be received and validated
+    await dataPromise;
+  });
+  test("sends notification to the client after adding a book", async () => {
+    const dataPromise = new Promise((resolve, reject) => {
       client.subscribe(
         {
           query: `
-            subscription {
-              bookAdded {
-                title
-                published
-                author {
-                  name
-                  bookCount
+                subscription {
+                  bookAdded {
+                    title
+                    published
+                    author {
+                      name
+                      bookCount
+                    }
+                    genres
+                  }
                 }
-                genres
-              }
-            }
-          `,
+              `,
         },
         {
           next(data: unknown) {
@@ -888,32 +900,32 @@ describe("Apollo Server", () => {
                   },
                 },
               });
-              done();
+              resolve(data);
             } catch (error: unknown) {
-              done(error);
+              reject(error);
             }
           },
           error(err: unknown) {
-            done(err);
+            reject(err);
           },
           complete() {
             console.log("Subscription completed! ");
-            done();
-            client.dispose();
           },
         }
       );
-
-      setTimeout(async () => {
-        const bookToAdd = books[7];
-        const addBookMutation = createAddBookMutation(bookToAdd);
-        const res = await addBook(addBookMutation);
-        const { data } = res.body;
-
-        expect(res.status).toBe(200);
-        expect(data).toBeDefined();
-      }, 1000);
     });
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    const bookToAdd = books[7];
+    const addBookMutation = createAddBookMutation(bookToAdd);
+    const res = await addBook(addBookMutation);
+    const { data } = res.body;
+
+    expect(res.status).toBe(200);
+    expect(data).toBeDefined();
+
+    await dataPromise;
   });
 });
+
 export {};
