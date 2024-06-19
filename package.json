@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "ts-node": "ts-node",
-    "test": "jest --verbose --runInBand --detectOpenHandles",
+    "test": "jest --verbose",
     "start": "npm run ts-node src/index.ts",
     "build": "tsc",
     "lint": "npx eslint -c eslint.config.mjs ."
