@@ -800,7 +800,6 @@ describe("Subscriptions", () => {
         },
         {
           next(data: unknown) {
-            console.log("Data from subscription: ", data);
             try {
               expect(data).toMatchObject({
                 data: {
@@ -845,7 +844,6 @@ describe("Subscriptions", () => {
       .send({ query: editAuthorBornMutation });
 
     const { data } = response.body;
-    console.log("Response: ", data);
     expect(response.status).toBe(200);
     expect(data).toBeDefined();
     expect(data.editAuthor).toEqual(expectedResult);
@@ -873,9 +871,7 @@ describe("Subscriptions", () => {
         },
         {
           next(data: unknown) {
-            console.log("Data from subscription: ", data);
             try {
-              console.log("SASDASDASDASDS");
               expect(data).toMatchObject({
                 data: {
                   bookAdded: {

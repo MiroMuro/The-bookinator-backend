@@ -89,6 +89,9 @@ const createServer = async (
   // - express.json(): This middleware parses incoming requests with JSON payloads
   // - expressMiddleware: This middleware connects the Express application with the Apollo Server
   // The context function is used to provide context for each GraphQL operation
+  app.get("/health", (_req, res) => {
+    res.send("OK");
+  });
   app.use(
     "/",
     cors({

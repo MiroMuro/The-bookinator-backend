@@ -11,14 +11,6 @@ const schema = new mongoose.Schema(
     },
     born: {
       type: Number,
-      validate: {
-        validator: function (v: number) {
-          console.log("v", v);
-          return v >= 0;
-        },
-        message: (props: { value: unknown }) =>
-          `${props.value} is not a positive number!`,
-      },
     },
   },
   {
