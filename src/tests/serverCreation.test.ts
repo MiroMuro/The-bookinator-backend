@@ -83,9 +83,10 @@ beforeAll(async () => {
   serverSetup = await createServer(typeDefs, resolvers);
   app = serverSetup.app;
   httpServer = serverSetup.httpServer;
-  httpServer.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-  });
+  await new Promise<void>((resolve) =>
+    httpServer.listen(PORT, () => resolve())
+  );
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
 
 afterAll(async () => {
