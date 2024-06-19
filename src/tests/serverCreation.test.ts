@@ -113,7 +113,7 @@ describe("Apollo Server", () => {
       .send({ query: mutation });
 
     const { data } = response.body;
-
+    console.log("Data from createUser test: ", data);
     expect(response.status).toBe(200);
     expect(data).toBeDefined();
     expect(data.createUser).toBeDefined();
