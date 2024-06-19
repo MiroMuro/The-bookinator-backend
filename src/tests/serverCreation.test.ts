@@ -135,7 +135,7 @@ describe("Apollo Server", () => {
       .post("/")
       .set("Content-Type", "application/json")
       .send({ query: loginMutation });
-
+    console.log("Response from login test: ", response);
     const { data } = response.body;
     console.log("Data from Login test: ", data);
     expect(response.status).toBe(200);
