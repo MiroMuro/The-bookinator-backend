@@ -134,7 +134,6 @@ const resolver = {
           return await BookMongo.find({});
         }
       } catch (error) {
-        console.log(error);
         if (error instanceof GraphQLError)
           throw new GraphQLError("Error fetching books.", {
             extensions: { code: "INTERNAL_SERVER_ERROR", error },
@@ -255,7 +254,6 @@ const resolver = {
 
       try {
         await user.save();
-        console.log("User saved: ", user);
         return user;
       } catch (error) {
         throw new GraphQLError("Creating an user failed. ", {
@@ -276,7 +274,6 @@ const resolver = {
         const user: UserMongoDB = await Account.findOne({
           username: args.username,
         });
-        console.log("User found here: ", user);
         //If the user is not found, throw an error.
         if (!user) {
           throw new GraphQLError("Login failed!", {
