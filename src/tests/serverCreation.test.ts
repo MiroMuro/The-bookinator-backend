@@ -22,7 +22,7 @@ import { books } from "./testdata";
 dotenv.config();
 
 let logintoken: string;
-
+const PORT = process.env.PORT || 4000;
 let mongoServer: typeof MongoMemoryServer;
 let app: Express.Application;
 let httpServer: http.Server;
@@ -34,7 +34,7 @@ const user: testUser = {
 };
 //Websocket client for testing subscriptions.
 const client: typeof Client = createClient({
-  url: `ws://localhost:${process.env.PORT}/`,
+  url: `ws://localhost:${PORT}/`,
   webSocketImpl: WebSocket,
 });
 const typeDefs: DocumentNode = gql(
@@ -74,10 +74,7 @@ beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri: string = mongoServer.getUri();
 
-  await mongoose.connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
+  await mongoose.connect(uri, {});
 
   await User.deleteMany({});
   await Book.deleteMany({});
@@ -86,7 +83,6 @@ beforeAll(async () => {
   serverSetup = await createServer(typeDefs, resolvers);
   app = serverSetup.app;
   httpServer = serverSetup.httpServer;
-  const PORT = process.env.PORT || 4000;
   httpServer.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
   });
@@ -141,6 +137,7 @@ describe("Apollo Server", () => {
         .send({ query: loginMutation });
 
       const { data } = response.body;
+      console.log("Data from Login test: ", data);
       expect(response.status).toBe(200);
       expect(data.login.value).toBeDefined();
       logintoken = data.login.value;
