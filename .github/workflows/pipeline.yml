@@ -21,4 +21,5 @@ jobs:
       - name: Run tests
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: npm test

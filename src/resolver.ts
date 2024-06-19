@@ -15,6 +15,7 @@ import {
   AddBookArgs,
   LoginArgs,
   CreateUserArgs,
+  JwtValidationError,
 } from "./types/interfaces";
 //Helper functions for the login mutation.
 const generateToken = (user: UserMongoDB, secret: string) => {
@@ -27,7 +28,7 @@ const generateToken = (user: UserMongoDB, secret: string) => {
 
 const validateEnvVariables = (): void => {
   if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET not defined");
+    throw new JwtValidationError("JWT_SECRET not defined");
   }
 };
 
@@ -254,6 +255,7 @@ const resolver = {
 
       try {
         await user.save();
+        console.log("User saved: ", user);
         return user;
       } catch (error) {
         throw new GraphQLError("Creating an user failed. ", {
@@ -274,6 +276,7 @@ const resolver = {
         const user: UserMongoDB = await Account.findOne({
           username: args.username,
         });
+        console.log("User found here: ", user);
         //If the user is not found, throw an error.
         if (!user) {
           throw new GraphQLError("Login failed!", {
@@ -304,6 +307,8 @@ const resolver = {
       } catch (error) {
         //If a GraphQLError is thrown within the try block, it is rethrown in the catch block.
         if (error instanceof GraphQLError) {
+          throw error;
+        } else if (error instanceof JwtValidationError) {
           throw error;
         }
         //If the error is not related to credentials, it is an internal server error.

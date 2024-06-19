@@ -38,6 +38,19 @@ export type CreateUserArgs = {
   favoriteGenre: string;
 };
 
+export type MongoAuthorType = {
+  id: string;
+  name: string;
+  born: number;
+  bookCount: number;
+};
+export type MongoBookType = {
+  id: string;
+  title: string;
+  published: number;
+  genres: string[];
+  author: MongoAuthorType;
+};
 export interface UserMongoDB {
   _id?: ObjectId;
   username: string;
@@ -54,17 +67,12 @@ export interface ArgsAllBooks {
   author?: string;
   genre?: string;
 }
-export type MongoAuthorType = {
-  id: string;
-  name: string;
-  born: number;
-  bookCount: number;
-};
-export type MongoBookType = {
-  id: string;
-  title: string;
-  published: number;
-  genres: string[];
-  author: MongoAuthorType;
-};
+
+export class JwtValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "JwtValidationError";
+    Object.setPrototypeOf(this, JwtValidationError.prototype);
+  }
+}
 export type MongoAuthorBookUnion = MongoAuthorType | MongoBookType;
