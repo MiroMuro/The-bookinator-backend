@@ -776,7 +776,6 @@ describe("Author", () => {
   });
 });
 describe("Subscriptions", () => {
-  // let subscription: PushSubscription;
   afterAll(() => {
     if (client) {
       client.dispose();

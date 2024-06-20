@@ -1,4 +1,3 @@
-//const typeDefs = require("./schema");
 const resolvers = require("./resolver");
 import * as http from "http";
 import { readFileSync } from "fs";
