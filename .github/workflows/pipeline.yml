@@ -21,9 +21,18 @@ jobs:
           else
             echo "This is not a pull request event."
             echo "IS_PULL_REQUEST=false" >> $GITHUB_ENV
+          fi
 
       - name: Print the IS_PULL_REQUEST variable
         run: echo "IS_PULL_REQUEST=$IS_PULL_REQUEST" echo "LATEST_LINK=$LATEST_LINK"
+
+      - name: Conditional step based on IS_PULL_REQUEST
+        if: ${{ env.IS_PULL_REQUEST == 'true' }}
+        run: |
+          echo "This step runs only for pull request events." 
+          echo "CONTENT=$(curl -s -H "Accept: application/vnd.github.v3+json" $LATEST_LINK | jq '.[0].commit.message')"
+          echo "Fetched content: $CONTENT"
+          echo "CONTENT=${CONTENT}" >> $GITHUB_ENV
 
   deployment_pipeline:
     runs-on: ubuntu-20.04
