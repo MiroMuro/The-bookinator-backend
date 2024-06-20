@@ -56,7 +56,7 @@ jobs:
         if: ${{failure()}}
         uses: rjstone/discord-webhook-notify@v1
         with:
-          severity: "info"
+          severity: "error"
           description: "npm install unsuccessful"
           details: "Please check the github actions logs for more information"
           username: "Github Actions Bot"
@@ -76,21 +76,72 @@ jobs:
         if: ${{failure()}}
         uses: rjstone/discord-webhook-notify@v1
         with:
-          severity: "info"
+          severity: "error"
           description: "Linting was unsuccessful"
           details: "Please check the github actions logs for more information"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Build
         run: npm run build
+      - name: Build success!
+        if: ${{success()}}
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: "info"
+          description: "Build was successful"
+          username: "Github Actions Bot"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+      - name: Build failure!
+        if: ${{failure()}}
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: "error"
+          description: "Build was unsuccessful"
+          details: "Please check the github actions logs for more information"
+          username: "Github Actions Bot"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Run tests
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: npm test
+      - name: Tests success!
+        if: ${{success()}}
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: "info"
+          description: "Tests were successful"
+          username: "Github Actions Bot"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+      - name: Tests failure!
+        if: ${{failure()}}
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: "error"
+          description: "Tests were unsuccessful"
+          username: "Github Actions Bot"
+          details: "Please check the github actions logs for more information"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Render Deployment
         if: ${{ github.event_name == 'push'}}
         uses: sws2apps/render-deployment@v1.7.0
         with:
           serviceId: ${{ secrets.RENDER_SERVICE_ID }}
           apiKey: ${{ secrets.RENDER_API_KEY }}
+      - name: Render deployment success!
+        if: ${{success()}}
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: "info"
+          description: "Deployment was successful"
+          username: "Github Actions Bot"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+      - name: Render deployment failure!
+        if: ${{failure()}}
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: "error"
+          description: "Deployment was unsuccessful"
+          details: "Please check the github actions logs for more information"
+          username: "Github Actions Bot"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
