@@ -49,7 +49,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "info"
-          description: "npm install successful"
+          description: "Bookinator backend npm install successful"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK}}
       - name: npm install failure!
@@ -57,7 +57,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "error"
-          description: "npm install unsuccessful"
+          description: "Bookinator backend npm install unsuccessful"
           details: "Please check the github actions logs for more information"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
@@ -69,7 +69,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "info"
-          description: "Linting was successful"
+          description: "Bookinator backend Linting was successful"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Linting failure!
@@ -77,7 +77,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "error"
-          description: "Linting was unsuccessful"
+          description: "Bookinator backend Linting was unsuccessful"
           details: "Please check the github actions logs for more information"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
@@ -88,7 +88,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "info"
-          description: "Build was successful"
+          description: "Bookinator backend Build was successful"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Build failure!
@@ -96,7 +96,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "error"
-          description: "Build was unsuccessful"
+          description: "Bookinator backend Build was unsuccessful"
           details: "Please check the github actions logs for more information"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
@@ -110,7 +110,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "info"
-          description: "Tests were successful"
+          description: "Bookinator backend Tests were successful"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Tests failure!
@@ -118,12 +118,12 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "error"
-          description: "Tests were unsuccessful"
+          description: "Bookinator backend Tests were unsuccessful"
           username: "Github Actions Bot"
           details: "Please check the github actions logs for more information"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Render Deployment
-        if: ${{ github.event_name == 'push'}}
+        if: ${{ github.event_name == 'push' && env.CONTENT != '#skip'}}
         uses: sws2apps/render-deployment@v1.7.0
         with:
           serviceId: ${{ secrets.RENDER_SERVICE_ID }}
@@ -133,7 +133,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "info"
-          description: "Deployment was successful"
+          description: "Bookinator backend Deployment was successful"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Render deployment failure!
@@ -141,7 +141,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: "error"
-          description: "Deployment was unsuccessful"
+          description: "Bookinator backend Deployment was unsuccessful"
           details: "Please check the github actions logs for more information"
           username: "Github Actions Bot"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
