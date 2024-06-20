@@ -92,6 +92,9 @@ const createServer = async (
   app.get("/health", (_req, res) => {
     res.send("OK");
   });
+  app.get("/ready", (req, res) => {
+    res.send("REEEADDYYYY");
+  });
   app.use(
     "/",
     cors({
