@@ -26,8 +26,8 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: npm test
-        if: ${{ github.event_name == 'push'}}
       - name: Render Deployment
+        if: ${{ github.event_name == 'push'}}
         uses: sws2apps/render-deployment@v1.7.0
         with:
           serviceId: ${{ secrets.RENDER_SERVICE_ID }}
