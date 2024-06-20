@@ -51,7 +51,7 @@ jobs:
           severity: "info"
           description: "npm install successful"
           username: "Github Actions Bot"
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK}}
       - name: npm install failure!
         if: ${{failure()}}
         uses: rjstone/discord-webhook-notify@v1
@@ -60,7 +60,7 @@ jobs:
           description: "npm install unsuccessful"
           details: "Please check the github actions logs for more information"
           username: "Github Actions Bot"
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
 
       - name: Check style
         run: npm run lint
@@ -71,7 +71,7 @@ jobs:
           severity: "info"
           description: "Linting was successful"
           username: "Github Actions Bot"
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Linting failure!
         if: ${{failure()}}
         uses: rjstone/discord-webhook-notify@v1
@@ -80,7 +80,7 @@ jobs:
           description: "Linting was unsuccessful"
           details: "Please check the github actions logs for more information"
           username: "Github Actions Bot"
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Build
         run: npm run build
       - name: Run tests
