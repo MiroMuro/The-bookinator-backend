@@ -900,7 +900,7 @@ describe("Subscriptions", () => {
       );
     });
     await new Promise((resolve) => setTimeout(resolve, 3000));
-
+    //New comment for a commit.
     const bookToAdd = books[7];
     const addBookMutation = createAddBookMutation(bookToAdd);
     const res = await addBook(addBookMutation);
