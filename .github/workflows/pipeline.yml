@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Determine if this is a pull request
         run: |
-          if [ "${{github.event_name}}" == "pull_request" ]; then
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "This is a pull request event."
             echo "IS_PULL_REQUEST=true" >> $GITHUB_ENV
             echo "LATEST_LINK=${{toJson(github.event.pull_request._links.commits.href)}}" >> $GITHUB_ENV
@@ -27,7 +27,7 @@ jobs:
         run: echo "IS_PULL_REQUEST=$IS_PULL_REQUEST" echo "LATEST_LINK=$LATEST_LINK"
 
       - name: Conditional step based on IS_PULL_REQUEST
-        if: ${{ env.IS_PULL_REQUEST == 'true' }}
+        if: ${{env.IS_PULL_REQUEST == 'true'}}
         run: |
           echo "This step runs only for pull request events." 
           echo "CONTENT=$(curl -s -H "Accept: application/vnd.github.v3+json" $LATEST_LINK | jq '.[0].commit.message')"
