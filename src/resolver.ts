@@ -23,7 +23,7 @@ const generateToken = (user: UserMongoDB, secret: string) => {
     username: user.username,
     id: user._id,
   };
-  return jsonwebtoken.sign(userForToken, secret, { expiresIn: "1h" });
+  return jsonwebtoken.sign(userForToken, secret, { expiresIn: 60 });
 };
 
 const validateEnvVariables = (): void => {
@@ -276,12 +276,15 @@ const resolver = {
         });
         //If the user is not found, throw an error.
         if (!user) {
-          throw new GraphQLError("Login failed!", {
-            extensions: {
-              code: "WRONG_CREDENTIALS",
-              invalidArgs: args.username,
-            },
-          });
+          throw new GraphQLError(
+            "Login failed! Invalid credentials. Please try again.",
+            {
+              extensions: {
+                code: "WRONG_CREDENTIALS",
+                invalidArgs: args.username,
+              },
+            }
+          );
         }
         //returns true if the password is correct.
         const passwordIsCorrect = await bcrypt.compare(

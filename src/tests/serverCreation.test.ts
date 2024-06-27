@@ -155,7 +155,9 @@ describe("Apollo Server", () => {
 
     expect(response.status).toBe(200);
     expect(data.login).toBeNull();
-    expect(errors.message).toBe("Login failed!");
+    expect(errors.message).toBe(
+      "Login failed! Invalid credentials. Please try again."
+    );
     expect(errors.extensions.code).toBe("WRONG_CREDENTIALS");
     expect(errors.extensions.invalidArgs).toBe("wrongUsername");
   });

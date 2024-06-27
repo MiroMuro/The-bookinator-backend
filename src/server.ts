@@ -106,15 +106,37 @@ const createServer = async (
       // It checks if there's an Authorization header in the request
       // If there is, it verifies the JWT and finds the user associated with the JWT
       // The user is then added to the context, so it can be accessed in the resolvers
-      context: async ({ req }: { req: express.Request }) => {
+      context: async ({
+        req,
+        res,
+      }: {
+        req: express.Request;
+        res: express.Response;
+      }) => {
         const auth = req ? req.headers.authorization : null;
         if (auth && auth.startsWith("bearer ")) {
-          const decodedToken = jwt.verify(
-            auth.substring(7),
-            process.env.JWT_SECRET
-          );
-          const currentUser = await User.findById(decodedToken.id);
-          return { currentUser };
+          try {
+            const decodedToken = jwt.verify(
+              auth.substring(7),
+              process.env.JWT_SECRET
+            );
+            const currentUser = await User.findById(decodedToken.id);
+            return { currentUser };
+          } catch (error) {
+            // If the JWT is invalid, the user is set to null.
+            // Edit the error object to send an error response to the client with a message
+            // that the user was timed out
+            const errorObject =
+              typeof error === "object" && error !== null
+                ? error
+                : { message: String(error) };
+            res.status(401).send({
+              ...errorObject,
+              messageForUser:
+                "You were timed out. Please login again or continue as a guest.",
+            });
+            return { currentUser: null };
+          }
         }
       },
     })
