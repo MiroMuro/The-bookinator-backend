@@ -23,7 +23,7 @@ const generateToken = (user: UserMongoDB, secret: string) => {
     username: user.username,
     id: user._id,
   };
-  return jsonwebtoken.sign(userForToken, secret, { expiresIn: 60 });
+  return jsonwebtoken.sign(userForToken, secret, { expiresIn: "1h" });
 };
 
 const validateEnvVariables = (): void => {
@@ -33,6 +33,8 @@ const validateEnvVariables = (): void => {
 };
 
 const validateBookArgs = (args: AddBookArgs): void => {
+  console.log(args);
+  console.log(args.genres.length);
   if (args.author.length < 4) {
     throw new GraphQLError("Creating a book failed!", {
       extensions: {
@@ -53,6 +55,14 @@ const validateBookArgs = (args: AddBookArgs): void => {
     throw new GraphQLError("Creating a book failed!", {
       extensions: {
         message: "Book must have at least one genre!",
+        code: "BAD_BOOK_GENRES",
+      },
+    });
+  }
+  if (args.genres.length > 3) {
+    throw new GraphQLError("Creating a book failed!", {
+      extensions: {
+        message: "Book cant have more then three genres!",
         code: "BAD_BOOK_GENRES",
       },
     });
@@ -179,18 +189,31 @@ const resolver = {
         pubsub.publish("BOOK_ADDED", { bookAdded: book });
 
         return book;
-      } catch (error) {
+        // Unkown doens't work here due to a bug in TypeScript.
+        // Doesnt allow type narrowing.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
         //If a GraphQLError is thrown within the try block, it is rethrown in the catch block.
         //This catches authentication error. e.g. User not logged in.
         if (error instanceof GraphQLError) {
           throw error;
-        }
-        throw new GraphQLError("Creating a book failed!", {
-          extensions: {
-            code: "DUPLICATE_BOOK_TITLE",
-            error,
-          },
-        });
+        } else if (
+          error.errors.title.properties.type == "unique" &&
+          error.errors.title.properties.path == "title"
+        ) {
+          throw new GraphQLError("Creating a book failed!", {
+            extensions: {
+              code: "DUPLICATE_BOOK_TITLE",
+              error,
+            },
+          });
+        } else
+          throw new GraphQLError("Creating a book failed!", {
+            extensions: {
+              code: "INTERNAL_SERVER_ERROR",
+              error,
+            },
+          });
       }
     },
     editAuthor: async (

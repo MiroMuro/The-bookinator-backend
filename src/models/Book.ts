@@ -16,7 +16,15 @@ const schema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "AuthorMongo",
   },
-  genres: [{ type: String }],
+  genres: {
+    type: [String],
+    validate: {
+      validator: function (v: string[]) {
+        return v.length <= 3; // Set the maximum array length here
+      },
+      message: "Genres array exceeds maximum length of 3",
+    },
+  },
 });
 
 schema.plugin(uniqueValidator);
