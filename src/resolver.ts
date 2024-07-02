@@ -281,7 +281,11 @@ const resolver = {
       } catch (error) {
         throw new GraphQLError("Creating an user failed. ", {
           extensions: {
-            code: "INVALID ARGUMENTS",
+            code: "DUPLICATE_USERNAME",
+            message:
+              "Username " +
+              args.username +
+              " already taken. Please try another one.",
             invalidArgs: args.username,
             error,
           },
