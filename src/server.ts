@@ -3,6 +3,7 @@ import { ServerType } from "./types/interfaces";
 import * as http from "http";
 import { DocumentNode } from "graphql";
 import { ResolversTypes } from "./utils/codegen/graphql";
+const { graphqlUploadExpress } = require("graphql-upload-ts");
 const { ApolloServer } = require("@apollo/server");
 const { expressMiddleware } = require("@apollo/server/express4");
 const {
@@ -14,11 +15,11 @@ const { useServer } = require("graphql-ws/lib/use/ws");
 const Express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+//import { GridFSBucket } from "mongodb";
 mongoose.set("strictQuery", false);
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
-
 const MONGODB_URI = process.env.MONGODB_URI;
 import { MongooseError } from "mongoose";
 
@@ -32,6 +33,12 @@ const InitializeMongoDB = async () => {
     .catch((error: MongooseError) => {
       console.log("Error connecring to MongoDB: ", error.message);
     });
+  mongoose.connection.once("open", () => {
+    globalThis.gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: "images",
+    });
+  });
+  console.log("Does this exist? " + globalThis.gfs ? "Yes" : "No");
 };
 
 const createServer = async (
@@ -89,18 +96,15 @@ const createServer = async (
   // - express.json(): This middleware parses incoming requests with JSON payloads
   // - expressMiddleware: This middleware connects the Express application with the Apollo Server
   // The context function is used to provide context for each GraphQL operation
-  app.get("/health", (_req, res) => {
-    res.send("OK");
-  });
-  app.get("/ready", (req, res) => {
-    res.send("REEEADDYYYY");
-  });
+
   app.use(
     "/",
     cors({
       origin: "*",
     }),
+    graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 10 }),
     express.json(),
+
     expressMiddleware(server, {
       // The context function is used to provide context for each GraphQL operation
       // It checks if there's an Authorization header in the request

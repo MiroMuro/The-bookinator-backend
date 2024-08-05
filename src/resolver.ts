@@ -1,11 +1,14 @@
 const { GraphQLError } = require("graphql");
 const { PubSub } = require("graphql-subscriptions");
+const { GraphQLUpload } = require("graphql-upload-ts");
 const BookMongo = require("./models/Book");
 const AuthorMongo = require("./models/Author");
 const Account = require("./models/User");
 const bcrypt = require("bcrypt");
 const pubsub = new PubSub();
+import { GridFSBucket } from "mongodb";
 const jsonwebtoken = require("jsonwebtoken");
+//import { Upload } from "graphql-upload-ts";
 import {
   Context,
   ArgsAllBooks,
@@ -18,6 +21,10 @@ import {
   JwtValidationError,
 } from "./types/interfaces";
 //Helper functions for the login mutation.
+declare global {
+  // eslint-disable-next-line no-var
+  var gfs: GridFSBucket | undefined;
+}
 const generateToken = (user: UserMongoDB, secret: string) => {
   const userForToken = {
     username: user.username,
@@ -125,7 +132,9 @@ const authenticateUser = (context: Context) => {
     });
   }
 };
+//The resolver object is the actual implementation of the GraphQL schema.
 const resolver = {
+  Upload: GraphQLUpload,
   Query: {
     me: async (_root: unknown, _args: unknown, context: Context) => {
       return context.currentUser;
@@ -156,6 +165,32 @@ const resolver = {
       return allAuthors;
     },
     allGenres: async () => await BookMongo.distinct("genres"),
+    /*getBookImage: async (_, { bookId }) => {
+      const book = await BookMongo.findById(bookId);
+      if (!book || !book.imageId) {
+        throw new GraphQLError("Book not found or image not uploaded!", {
+          extensions: {
+            code: "BOOK_NOT_FOUND",
+          },
+        });
+      }
+      const downloadStream = global.gfs.openDownloadStream(book.imageId);
+      return new Promise((resolve, reject) => {
+        const fileChunks: Buffer[] = [];
+        downloadStream.on("data", (chunk) => {
+          fileChunks.push(chunk);
+        });
+        downloadStream.on("end", () => {
+          const fileBuffer = Buffer.concat(fileChunks);
+          const base64Image = fileBuffer.toString("base64");
+          const dataUrl = `data:${downloadStream.contentType};base64,${base64Image}`;
+          resolve(dataUrl);
+        });
+        downloadStream.on("error", (error) => {
+          reject(new Error("Image retrieval failed: " + error.message));
+        });
+      });
+    },*/
   },
 
   Book: {
@@ -346,6 +381,41 @@ const resolver = {
           },
         });
       }
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    uploadBookImage: async (_: never, { file, bookId }: any) => {
+      console.log("Uploading image for book: ", bookId);
+      console.log("File: ", file);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { createReadStream, filename, mimetype, encoding } = await file;
+      const stream = createReadStream();
+
+      const uploadStream = (globalThis.gfs as GridFSBucket).openUploadStream(
+        filename,
+        {
+          contentType: mimetype,
+        }
+      );
+      stream.pipe(uploadStream);
+
+      return new Promise((resolve, reject) => {
+        uploadStream.on("finish", async () => {
+          const book = await BookMongo.findByIdandUpdate(
+            bookId,
+            { imageId: uploadStream.id },
+            { new: true }
+          );
+          resolve(book);
+        });
+
+        uploadStream.on("error", (error: unknown) => {
+          if (error instanceof Error) {
+            reject(new Error("Error uploading image!" + error.message));
+          } else {
+            reject(new Error("Error uploading image!" + error));
+          }
+        });
+      });
     },
   },
   Subscription: {

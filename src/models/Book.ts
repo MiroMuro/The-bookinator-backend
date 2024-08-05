@@ -25,6 +25,10 @@ const schema = new mongoose.Schema({
       message: "Genres array exceeds maximum length of 3",
     },
   },
+  imageId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Image",
+  },
 });
 
 schema.plugin(uniqueValidator);

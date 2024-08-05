@@ -1,3 +1,5 @@
+scalar Upload
+
 type User {
   username: String!
   favoriteGenre: String!
@@ -13,6 +15,7 @@ type Query {
   allAuthors: [Author]
   allGenres: [String!]!
   me: User!
+  getBookImage(bookId: ID!): String!
 }
 type Author {
   name: String!
@@ -25,6 +28,7 @@ type Book {
   published: Int!
   author: Author!
   id: ID!
+  imageId: String!
   genres: [String!]!
 }
 type Subscription {
@@ -48,4 +52,6 @@ type Mutation {
   login(username: String!, password: String!): Token
 
   logout: Boolean
+
+  uploadBookImage(file: Upload!, bookId: ID!): Book!
 }

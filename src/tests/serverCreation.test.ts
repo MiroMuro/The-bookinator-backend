@@ -8,6 +8,7 @@ const Author = require("../models/Author");
 const { createClient, Client } = require("graphql-ws");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const dotenv = require("dotenv");
+import { GridFSBucket } from "mongodb";
 const mongoose = require("mongoose");
 const WebSocket = require("ws");
 //const { execute, parse } = require("graphql");
@@ -20,7 +21,12 @@ import { testUser, ServerType, AddBookArgs } from "../types/interfaces";
 import { books } from "./testdata";
 //import exp from "constants";
 dotenv.config();
-
+//Declare a global variable for the GridFSBucket instance.
+//Declaring it in global.d.ts did not work.?? help.
+declare global {
+  // eslint-disable-next-line no-var
+  var gfs: GridFSBucket | undefined;
+}
 let logintoken: string;
 const PORT = process.env.PORT || 4000;
 let mongoServer: typeof MongoMemoryServer;
