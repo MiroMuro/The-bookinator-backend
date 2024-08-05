@@ -9,7 +9,7 @@
     "outDir": "./dist",
     "noImplicitAny": true,
     "strictNullChecks": true,
-    "noUnusedLocals": true
+    "noUnusedLocals": false
   },
   "include": ["src/index.ts"],
   "exclude": ["node_modules"]
