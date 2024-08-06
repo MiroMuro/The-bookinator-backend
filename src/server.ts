@@ -90,13 +90,17 @@ const createServer = async (
   //Start the servers.
   await server.start();
 
+  //health check for deployment
+  app.get("/health", (req, res) => {
+    res.send("Server is running");
+  });
+
   // Configure the Express application
   // The application is configured to use the following middleware:
   // - CORS: This middleware allows cross-origin requests
   // - express.json(): This middleware parses incoming requests with JSON payloads
   // - expressMiddleware: This middleware connects the Express application with the Apollo Server
   // The context function is used to provide context for each GraphQL operation
-
   app.use(
     "/",
     cors({
