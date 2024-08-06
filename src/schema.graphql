@@ -15,7 +15,7 @@ type Query {
   allAuthors: [Author]
   allGenres: [String!]!
   me: User!
-  getBookImage(bookId: ID!): String!
+  getBookImage(bookId: ID!): String
 }
 type Author {
   name: String!
@@ -28,7 +28,7 @@ type Book {
   published: Int!
   author: Author!
   id: ID!
-  imageId: String!
+  imageId: String
   genres: [String!]!
 }
 type Subscription {

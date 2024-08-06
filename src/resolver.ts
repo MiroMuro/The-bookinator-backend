@@ -165,7 +165,7 @@ const resolver = {
       return allAuthors;
     },
     allGenres: async () => await BookMongo.distinct("genres"),
-    /*getBookImage: async (_, { bookId }) => {
+    getBookImage: async (_: string, { bookId }: { bookId: string }) => {
       const book = await BookMongo.findById(bookId);
       if (!book || !book.imageId) {
         throw new GraphQLError("Book not found or image not uploaded!", {
@@ -174,7 +174,23 @@ const resolver = {
           },
         });
       }
-      const downloadStream = global.gfs.openDownloadStream(book.imageId);
+      //Get the metadata from images.files
+      const file = await (globalThis.gfs as GridFSBucket)
+        .find({ _id: book.imageId })
+        .toArray();
+      if (!file || file.length === 0) {
+        throw new GraphQLError("Image file not found!", {
+          extensions: {
+            code: "IMAGE_FILE_NOT_FOUND",
+          },
+        });
+      }
+      const contentType = file[0].contentType;
+
+      //Stream the image here from images.chunks (the actual image data)
+      const downloadStream = (
+        globalThis.gfs as GridFSBucket
+      ).openDownloadStream(book.imageId);
       return new Promise((resolve, reject) => {
         const fileChunks: Buffer[] = [];
         downloadStream.on("data", (chunk) => {
@@ -183,14 +199,14 @@ const resolver = {
         downloadStream.on("end", () => {
           const fileBuffer = Buffer.concat(fileChunks);
           const base64Image = fileBuffer.toString("base64");
-          const dataUrl = `data:${downloadStream.contentType};base64,${base64Image}`;
+          const dataUrl = `data:${contentType};base64,${base64Image}`;
           resolve(dataUrl);
         });
         downloadStream.on("error", (error) => {
           reject(new Error("Image retrieval failed: " + error.message));
         });
       });
-    },*/
+    },
   },
 
   Book: {
@@ -400,7 +416,7 @@ const resolver = {
 
       return new Promise((resolve, reject) => {
         uploadStream.on("finish", async () => {
-          const book = await BookMongo.findByIdandUpdate(
+          const book = await BookMongo.findByIdAndUpdate(
             bookId,
             { imageId: uploadStream.id },
             { new: true }
