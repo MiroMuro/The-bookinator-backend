@@ -165,6 +165,7 @@ const resolver = {
       return allAuthors;
     },
     allGenres: async () => await BookMongo.distinct("genres"),
+    allUsers: async () => await Account.find({}),
     getBookImage: async (_: string, { bookId }: { bookId: string }) => {
       const book = await BookMongo.findById(bookId);
       if (!book || !book.imageId) {

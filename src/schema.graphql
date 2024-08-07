@@ -14,6 +14,7 @@ type Query {
   allBooks(author: String, genre: String): [Book!]!
   allAuthors: [Author]
   allGenres: [String!]!
+  allUsers: [User]
   me: User!
   getBookImage(bookId: ID!): String
 }

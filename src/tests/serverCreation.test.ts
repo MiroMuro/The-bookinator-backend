@@ -95,7 +95,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await mongoose.disconnect();
   await mongoServer.stop();
-  //(await wsClient) && wsClient.dispose();
   httpServer.close();
 });
 
@@ -148,6 +147,28 @@ describe("Apollo Server", () => {
     expect(errors.extensions.error.message).toBe(
       "User validation failed: username: Error, expected `username` to be unique. Value: `testUser1`"
     );
+  });
+  it("Duplicate user isn't stored in the database", async () => {
+    const query = `
+      query {
+        allUsers {
+          username
+          favoriteGenre
+          id
+        }
+      }
+    `;
+    const response = await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .send({ query: query });
+
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.allUsers).toHaveLength(1);
+    expect(data.allUsers[0].username).toBe(user.username);
+    expect(data.allUsers[0].favoriteGenre).toBe(user.favoriteGenre);
   });
   it("is successful and returns an authorization token", async () => {
     const loginMutation = `
