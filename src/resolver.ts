@@ -40,8 +40,8 @@ const validateEnvVariables = (): void => {
 };
 
 const validateBookArgs = (args: AddBookArgs): void => {
-  console.log(args);
-  console.log(args.genres.length);
+  //console.log(args);
+  //console.log(args.genres.length);
   if (args.author.length < 4) {
     throw new GraphQLError("Creating a book failed!", {
       extensions: {
@@ -330,7 +330,7 @@ const resolver = {
         await user.save();
         return user;
       } catch (error) {
-        throw new GraphQLError("Creating an user failed. ", {
+        throw new GraphQLError("Creating an user failed!", {
           extensions: {
             code: "DUPLICATE_USERNAME",
             message:

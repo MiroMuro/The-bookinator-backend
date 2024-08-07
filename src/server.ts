@@ -108,7 +108,6 @@ const createServer = async (
     }),
     graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 10 }),
     express.json(),
-
     expressMiddleware(server, {
       // The context function is used to provide context for each GraphQL operation
       // It checks if there's an Authorization header in the request

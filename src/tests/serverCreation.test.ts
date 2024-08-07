@@ -124,6 +124,31 @@ describe("Apollo Server", () => {
     expect(data.createUser.favoriteGenre).toBe(user.favoriteGenre);
     expect(data.createUser.id).toBeDefined();
   });
+  it("fails with duplicate username", async () => {
+    const mutation = `
+      mutation {
+        createUser(username: "${user.username}", password: "${user.password}", favoriteGenre: "${user.favoriteGenre}"){
+          username
+          favoriteGenre
+          id
+        }
+      }
+    `;
+    const response = await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .send({ query: mutation });
+    const { data } = response.body;
+    const errors = response.body.errors[0];
+
+    expect(response.status).toBe(200);
+    expect(data.createUser).toBeNull();
+    expect(errors.message).toBe("Creating an user failed!");
+    expect(errors.extensions.code).toBe("DUPLICATE_USERNAME");
+    expect(errors.extensions.error.message).toBe(
+      "User validation failed: username: Error, expected `username` to be unique. Value: `testUser1`"
+    );
+  });
   it("is successful and returns an authorization token", async () => {
     const loginMutation = `
         mutation {
