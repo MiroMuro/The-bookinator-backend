@@ -12,6 +12,10 @@ const schema = new mongoose.Schema(
     born: {
       type: Number,
     },
+    description: {
+      type: String,
+      maxLength: 600,
+    },
   },
   {
     toJSON: { virtuals: true },

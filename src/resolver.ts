@@ -19,6 +19,8 @@ import {
   LoginArgs,
   CreateUserArgs,
   JwtValidationError,
+  AddAuthorArgs,
+  MongoError,
 } from "./types/interfaces";
 //Helper functions for the login mutation.
 declare global {
@@ -83,7 +85,24 @@ const validateBookArgs = (args: AddBookArgs): void => {
     });
   }
 };
-
+const validateAddAuthorArgs = (args: AddAuthorArgs): void => {
+  if (args.name.length < 4) {
+    throw new GraphQLError("Creating an author failed!", {
+      extensions: {
+        message: "Author name too Short!",
+        code: "BAD_AUTHOR_NAME",
+      },
+    });
+  }
+  if (args.born && args.born < 0) {
+    throw new GraphQLError("Creating an author failed!", {
+      extensions: {
+        message: "Author birth year cant be negative!",
+        code: "BAD_AUTHOR_BIRTH_YEAR",
+      },
+    });
+  }
+};
 const findOrCreateAuthor = async (authorName: string) => {
   //The bookcount must be populated to be able to increment it.
   let author = await AuthorMongo.findOne({ name: authorName }).populate(
@@ -268,6 +287,44 @@ const resolver = {
           });
       }
     },
+    addAuthor: async (
+      _root: unknown,
+      args: AddAuthorArgs,
+      context: Context
+    ) => {
+      try {
+        authenticateUser(context);
+        validateAddAuthorArgs(args);
+        const newAuthor = new AuthorMongo({ ...args });
+        await newAuthor.save();
+
+        pubsub.publish("AUTHOR_ADDED", { authorAdded: newAuthor });
+
+        return newAuthor;
+      } catch (error) {
+        if (
+          error instanceof GraphQLError &&
+          (error as MongoError).errors?.name?.properties?.type === "unique" &&
+          (error as MongoError).errors?.name?.properties?.path === "name"
+        ) {
+          throw new GraphQLError("Creating an author failed!", {
+            extensions: {
+              code: "DUPLICATE_AUTHOR_NAME",
+              error,
+            },
+          });
+        }
+        if (error instanceof GraphQLError) {
+          throw error;
+        }
+        throw new GraphQLError("Creating an author failed!", {
+          extensions: {
+            code: "INTERNAL_SERVER_ERROR",
+            error,
+          },
+        });
+      }
+    },
     editAuthor: async (
       root: unknown,
       args: AuthorSetBornArgs,
@@ -441,6 +498,9 @@ const resolver = {
     },
     authorUpdated: {
       subscribe: () => pubsub.asyncIterator("AUTHOR_UPDATED"),
+    },
+    authorAdded: {
+      subscribe: () => pubsub.asyncIterator("AUTHOR_ADDED"),
     },
   },
 };

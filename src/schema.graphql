@@ -23,6 +23,7 @@ type Author {
   id: ID!
   born: Int
   bookCount: Int
+  description: String
 }
 type Book {
   title: String!
@@ -38,6 +39,11 @@ type Subscription {
 type Subscription {
   authorUpdated: Author!
 }
+
+type Subscription {
+  authorAdded: User!
+}
+
 type Mutation {
   addBook(
     title: String!
@@ -47,6 +53,8 @@ type Mutation {
   ): Book
 
   editAuthor(name: String!, setBornTo: Int!): Author
+
+  addAuthor(name: String!, born: Int, description: String): Author
 
   createUser(username: String!, favoriteGenre: String!, password: String!): User
 

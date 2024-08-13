@@ -27,6 +27,11 @@ export type AddBookArgs = {
   published: number;
   genres: string[];
 };
+export type AddAuthorArgs = {
+  name: string;
+  born?: number;
+  description?: string;
+};
 
 export type LoginArgs = {
   username: string;
@@ -59,6 +64,16 @@ export interface UserMongoDB {
   __v?: number;
 }
 
+export interface MongoError extends Error {
+  errors: {
+    name: {
+      properties: {
+        type: string;
+        path: string;
+      };
+    };
+  };
+}
 export interface Context {
   currentUser: UserMongoDB;
 }
