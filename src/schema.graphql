@@ -41,7 +41,7 @@ type Subscription {
 }
 
 type Subscription {
-  authorAdded: User!
+  authorAdded: Author!
 }
 
 type Mutation {

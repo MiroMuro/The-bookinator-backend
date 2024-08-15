@@ -296,6 +296,9 @@ const resolver = {
         authenticateUser(context);
         validateAddAuthorArgs(args);
         const newAuthor = new AuthorMongo({ ...args });
+        console.log("We out here in addAuthor");
+        console.log("THE ARGS: ", args);
+        console.log("New author: ", newAuthor);
         await newAuthor.save();
 
         pubsub.publish("AUTHOR_ADDED", { authorAdded: newAuthor });
