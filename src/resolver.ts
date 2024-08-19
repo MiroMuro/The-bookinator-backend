@@ -141,6 +141,10 @@ const findBooksByAuthorAndGenre = async (args: ArgsAllBooks) => {
   return books;
 };
 
+/*const findBookById = async (bookId: string) => {
+  return await BookMongo.findById(bookId);
+};*/
+
 const authenticateUser = (context: Context) => {
   if (!context.currentUser) {
     throw new GraphQLError("User not authenticated.", {
@@ -159,6 +163,10 @@ const resolver = {
       return context.currentUser;
     },
     bookCount: async () => BookMongo.collection.countDocuments(),
+    getBookById: async (_root: unknown, { bookId }: { bookId: string }) => {
+      const book = await BookMongo.findById(bookId);
+      return book;
+    },
     authorCount: () => AuthorMongo.collection.countDocuments(),
     allBooks: async (_root: unknown, args: ArgsAllBooks) => {
       try {
@@ -178,6 +186,7 @@ const resolver = {
           });
       }
     },
+
     allAuthors: async () => {
       const allAuthors = await AuthorMongo.find().populate("bookCount");
 
