@@ -29,6 +29,10 @@ const schema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Image",
   },
+  description: {
+    type: String,
+    maxLength: 600,
+  },
 });
 
 schema.plugin(uniqueValidator);

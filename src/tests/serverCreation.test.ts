@@ -828,6 +828,32 @@ describe("Author", () => {
     expect(errors.message).toBe("Author birth year cant be negative!");
     expect(errors.extensions.code).toBe("BAD_AUTHOR_BIRTH_YEAR");
   });
+  it("Can be added correctly through its own mutation", async () => {
+    const authorToAdd = {
+      name: "Pekka Männyskä",
+      born: 1954,
+      description: "A Finnish author.",
+    };
+    const addAuthorMutation = `mutation{
+    addAuthor(name: "${authorToAdd.name}", born: ${authorToAdd.born}, description: "${authorToAdd.description}"){
+      name
+      born
+      description
+    }
+  }`;
+
+    const response = await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `bearer ${logintoken}`)
+      .send({ query: addAuthorMutation });
+
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    console.log("Data from add Author test", data);
+    expect(data).toBeDefined();
+    expect(data.addAuthor).toEqual(authorToAdd);
+  });
 });
 describe("Subscriptions", () => {
   // let subscription: PushSubscription;
@@ -901,6 +927,83 @@ describe("Subscriptions", () => {
     expect(response.status).toBe(200);
     expect(data).toBeDefined();
     expect(data.editAuthor).toEqual(expectedResult);
+
+    // Wait for the subscription data to be received and validated
+    await dataPromise;
+  });
+  test("send notification to the client after adding an author", async () => {
+    // Create a promise to wait for the subscription's next callback
+    const dataPromise = new Promise((resolve, reject) => {
+      client.subscribe(
+        {
+          query: `
+              subscription {
+                authorAdded {
+                  name
+                  born
+                  description
+                  bookCount
+                  
+                }
+              }
+            `,
+        },
+        {
+          next(data: unknown) {
+            try {
+              expect(data).toMatchObject({
+                data: {
+                  authorAdded: {
+                    bookCount: null,
+                    name: "Tomi Kukkanen",
+                    born: 2002,
+                    description: "Distinguished young finnish author.",
+                  },
+                },
+              });
+              resolve(data); // Resolve the promise if expectations pass
+            } catch (error: unknown) {
+              reject(error); // Reject the promise if expectations fail
+            }
+          },
+          error(err: unknown) {
+            reject(err); // Reject the promise if there's an error
+          },
+          complete() {
+            console.log("Subscription completed!");
+          },
+        }
+      );
+    });
+    //wait for the subscription to be ready
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Perform the mutation
+
+    const authorToAdd = {
+      name: "Tomi Kukkanen",
+      born: 2002,
+      description: "Distinguished young finnish author.",
+    };
+
+    const addAuthorMutation = `mutation{
+        addAuthor(name: "${authorToAdd.name}", born: ${authorToAdd.born}, description: "${authorToAdd.description}"){
+          name
+          description
+          born
+        }
+      }
+      `;
+
+    const response = await request(app)
+      .post("/")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `bearer ${logintoken}`)
+      .send({ query: addAuthorMutation });
+
+    const { data } = response.body;
+    expect(response.status).toBe(200);
+    expect(data).toBeDefined();
+    expect(data.addAuthor).toEqual(authorToAdd);
 
     // Wait for the subscription data to be received and validated
     await dataPromise;

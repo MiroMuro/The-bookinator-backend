@@ -29,6 +29,7 @@ type Book {
   title: String!
   published: Int!
   author: Author!
+  description: String
   id: ID!
   imageId: String
   genres: [String!]!
@@ -50,6 +51,7 @@ type Mutation {
     author: String!
     published: Int!
     genres: [String!]!
+    description: String
   ): Book
 
   editAuthor(name: String!, setBornTo: Int!): Author
