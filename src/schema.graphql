@@ -12,6 +12,7 @@ type Query {
   bookCount: Int!
   authorCount: Int!
   getBookById(bookId: String!): Book
+  getAuthorById(authorId: String!): Author
   allBooks(author: String, genre: String): [Book!]!
   allAuthors: [Author]
   allGenres: [String!]!

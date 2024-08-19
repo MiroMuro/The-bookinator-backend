@@ -167,6 +167,13 @@ const resolver = {
       const book = await BookMongo.findById(bookId);
       return book;
     },
+    getAuthorById: async (
+      _root: unknown,
+      { authorId }: { authorId: string }
+    ) => {
+      const author = await AuthorMongo.findById(authorId);
+      return author;
+    },
     authorCount: () => AuthorMongo.collection.countDocuments(),
     allBooks: async (_root: unknown, args: ArgsAllBooks) => {
       try {
