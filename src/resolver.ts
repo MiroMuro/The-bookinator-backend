@@ -171,7 +171,7 @@ const resolver = {
       _root: unknown,
       { authorId }: { authorId: string }
     ) => {
-      const author = await AuthorMongo.findById(authorId);
+      const author = await AuthorMongo.findById(authorId).populate("bookCount");
       return author;
     },
     authorCount: () => AuthorMongo.collection.countDocuments(),
