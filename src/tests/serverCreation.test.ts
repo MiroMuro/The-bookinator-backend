@@ -762,6 +762,7 @@ describe("Author", () => {
     expect(data).toBeDefined();
     expect(data.allAuthors).toEqual(uniqueAuthors);
   });
+  //it("Can be fetched with id correctly", async () => {});
   it("Can be edited correctly", async () => {
     const authorToEdit = books[0].author;
     const expectedResult = { name: "Jack Swanson", born: 1990 };

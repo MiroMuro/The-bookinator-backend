@@ -16,6 +16,10 @@ const schema = new mongoose.Schema(
       type: String,
       maxLength: 600,
     },
+    imageId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Image",
+    },
   },
   {
     toJSON: { virtuals: true },

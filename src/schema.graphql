@@ -19,6 +19,7 @@ type Query {
   allUsers: [User]
   me: User!
   getBookImage(bookId: ID!): String
+  getAuthorImage(authorId: ID!): String
 }
 type Author {
   name: String!
@@ -26,6 +27,7 @@ type Author {
   born: Int
   bookCount: Int
   description: String
+  imageId: String
 }
 type Book {
   title: String!
@@ -67,4 +69,6 @@ type Mutation {
   logout: Boolean
 
   uploadBookImage(file: Upload!, bookId: ID!): Book!
+
+  uploadAuthorImage(file: Upload!, authorId: ID!): Author!
 }

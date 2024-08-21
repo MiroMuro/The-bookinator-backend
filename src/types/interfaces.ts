@@ -64,6 +64,16 @@ export interface UserMongoDB {
   __v?: number;
 }
 
+export interface ImageFile {
+  fieldName: string;
+  filename: string;
+  mimetype: string;
+  encoding: string;
+  createReadStream: () => NodeJS.ReadableStream;
+}
+
+export type FilePromise = Promise<ImageFile>;
+
 export interface MongoError extends Error {
   errors: {
     name: {
