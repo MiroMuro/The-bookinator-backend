@@ -231,7 +231,6 @@ const resolver = {
           },
         });
       }
-      console.log("File: ", file);
       const contentType = file[0].contentType;
 
       //Stream the image here from images.chunks (the actual image data)
@@ -259,7 +258,7 @@ const resolver = {
       _: unknown,
       { authorId }: { authorId: ObjectId }
     ) => {
-      const author = AuthorMongo.findById(authorId);
+      const author = await AuthorMongo.findById(authorId);
       if (!author || !author.imageId) {
         throw new GraphQLError("Author not found or image not uploaded!", {
           extensions: {
@@ -287,13 +286,14 @@ const resolver = {
       const downloadStream = (
         globalThis.gfs as GridFSBucket
       ).openDownloadStream(author.imageId);
+
       //Return a promise that resolves to a base64 encoded image.
       return new Promise((resolve, reject) => {
         const fileChunks: Buffer[] = [];
         downloadStream.on("data", (chunk) => {
-          console.log("A chunk of data here: ", chunk);
           fileChunks.push(chunk);
         });
+
         //When the stream ends, concatenate the chunks and convert to base64.
         downloadStream.on("end", () => {
           const fileBuffer = Buffer.concat(fileChunks);
@@ -627,17 +627,18 @@ const resolver = {
         });
       } catch (error) {
         if (error instanceof GraphQLError) throw error;
-        else if (error instanceof JwtValidationError) {
+        /*else if (error instanceof JwtValidationError) {
           throw error;
+        }*/ else {
+          throw (
+            (new GraphQLError("Error in uploading image!"),
+            {
+              extensions: {
+                code: "INTERNAL_SERVER_ERROR",
+              },
+            })
+          );
         }
-        throw (
-          (new GraphQLError("Error in uploading image!"),
-          {
-            extensions: {
-              code: "INTERNAL_SERVER_ERROR",
-            },
-          })
-        );
       }
     },
   },
