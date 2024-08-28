@@ -15,9 +15,6 @@ const { useServer } = require("graphql-ws/lib/use/ws");
 const Express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-//import { GridFSBucket } from "mongodb";
-mongoose.set("strictQuery", false);
-require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
 const Book = require("./models/Book");
@@ -26,10 +23,13 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const { MongoMemoryServer } = require("mongodb-memory-server");
 let mongoTestServer: typeof MongoMemoryServer;
 import { MongooseError } from "mongoose";
+mongoose.set("strictQuery", false);
+require("dotenv").config();
 
 const initializeTestMongoServer = async () => {
   mongoTestServer = await MongoMemoryServer.create();
   const uri: string = await mongoTestServer.getUri();
+  console.log("Test MongoDB URI: ", uri);
   await mongoose.connect(uri, {});
   await User.deleteMany({});
   await Book.deleteMany({});

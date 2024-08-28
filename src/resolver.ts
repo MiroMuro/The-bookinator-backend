@@ -1,6 +1,7 @@
 const { GraphQLError } = require("graphql");
 const { PubSub } = require("graphql-subscriptions");
 const { GraphQLUpload } = require("graphql-upload-ts");
+const mongoose = require("mongoose");
 const BookMongo = require("./models/Book");
 const AuthorMongo = require("./models/Author");
 const Account = require("./models/User");
@@ -640,6 +641,17 @@ const resolver = {
           );
         }
       }
+    },
+    //********USE ONLY TO CLEAR THE TEST DATABASE !!!***************/
+    clearDatabase: async () => {
+      if (process.env.NODE_ENV === "test") {
+        const collections = await mongoose.connection.db.collections();
+        for (const collection of collections) {
+          await collection.deleteMany({});
+        }
+        return;
+      }
+      return;
     },
   },
 

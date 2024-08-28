@@ -1,5 +1,7 @@
 scalar Upload
 
+scalar Void
+
 type User {
   username: String!
   favoriteGenre: String!
@@ -17,7 +19,7 @@ type Query {
   allAuthors: [Author]
   allGenres: [String!]!
   allUsers: [User]
-  me: User!
+  me: User
   getBookImage(bookId: ID!): String
   getAuthorImage(authorId: ID!): String
 }
@@ -71,4 +73,6 @@ type Mutation {
   uploadBookImage(file: Upload!, bookId: ID!): Book!
 
   uploadAuthorImage(file: Upload!, authorId: ID!): Author!
+
+  clearDatabase: Void
 }
