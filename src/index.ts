@@ -6,18 +6,28 @@ import { join } from "path";
 import { gql } from "graphql-tag";
 import { DocumentNode } from "graphql";
 require("dotenv").config();
-const { createServer, InitializeMongoDB } = require("./server");
+const {
+  createServer,
+  InitializeMongoDB,
+  initializeTestMongoServer,
+} = require("./server");
 import { ServerType } from "./types/interfaces";
 import { MongooseError } from "mongoose";
 
 const startApplication = async () => {
+  console.log("Starting the application in Mode: ", process.env.NODE_ENV);
   try {
     //Read the schema
     const typeDefs: DocumentNode = gql(
       readFileSync(join(__dirname, "schema.graphql"), "utf8")
     );
     //Initialize the MongoDB connection.
-    await InitializeMongoDB();
+    // Mock the MongoDB connection and DB for testing.
+    if (process.env.NODE_ENV === "test") {
+      await initializeTestMongoServer();
+    } else {
+      await InitializeMongoDB();
+    }
     //Create the http and websocket servers.
     const serverSetup: ServerType = await createServer(typeDefs, resolvers);
     const httpServer: http.Server = serverSetup.httpServer;

@@ -20,8 +20,21 @@ mongoose.set("strictQuery", false);
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
+const Book = require("./models/Book");
+const Author = require("./models/Author");
 const MONGODB_URI = process.env.MONGODB_URI;
+const { MongoMemoryServer } = require("mongodb-memory-server");
+let mongoTestServer: typeof MongoMemoryServer;
 import { MongooseError } from "mongoose";
+
+const initializeTestMongoServer = async () => {
+  mongoTestServer = await MongoMemoryServer.create();
+  const uri: string = await mongoTestServer.getUri();
+  await mongoose.connect(uri, {});
+  await User.deleteMany({});
+  await Book.deleteMany({});
+  await Author.deleteMany({});
+};
 
 const InitializeMongoDB = async () => {
   console.log("Connecting to MongoDB...");
@@ -94,7 +107,11 @@ const createServer = async (
   app.get("/health", (req, res) => {
     res.send("Server is running");
   });
-
+  if (process.env.NODE_ENV === "test") {
+    app.get("/testing", (req, res) => {
+      res.send("Server running in test mode");
+    });
+  }
   // Configure the Express application
   // The application is configured to use the following middleware:
   // - CORS: This middleware allows cross-origin requests
@@ -152,4 +169,4 @@ const createServer = async (
   return { server, app, httpServer, wsServer, schema };
 };
 
-module.exports = { createServer, InitializeMongoDB };
+module.exports = { createServer, InitializeMongoDB, initializeTestMongoServer };
