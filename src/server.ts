@@ -30,10 +30,16 @@ const initializeTestMongoServer = async () => {
   mongoTestServer = await MongoMemoryServer.create();
   const uri: string = await mongoTestServer.getUri();
   console.log("Test MongoDB URI: ", uri);
-  await mongoose.connect(uri, {});
+  mongoose.connect(uri, {});
+  mongoose.connection.once("open", () => {
+    globalThis.gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: "images",
+    });
+  });
   await User.deleteMany({});
   await Book.deleteMany({});
   await Author.deleteMany({});
+  console.log("Does this exist? " + globalThis.gfs ? "Yes" : "No");
 };
 
 const InitializeMongoDB = async () => {

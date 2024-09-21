@@ -581,14 +581,11 @@ const resolver = {
         else if (error instanceof JwtValidationError) {
           throw error;
         }
-        throw (
-          (new GraphQLError("Error in uploading image!"),
-          {
-            extensions: {
-              code: "INTERNAL_SERVER_ERROR",
-            },
-          })
-        );
+        throw new GraphQLError("Error in uploading image!", {
+          extensions: {
+            code: "INTERNAL_SERVER_ERROR",
+          },
+        });
       }
     },
     uploadAuthorImage: async (
@@ -631,14 +628,7 @@ const resolver = {
         /*else if (error instanceof JwtValidationError) {
           throw error;
         }*/ else {
-          throw (
-            (new GraphQLError("Error in uploading image!"),
-            {
-              extensions: {
-                code: "INTERNAL_SERVER_ERROR",
-              },
-            })
-          );
+          throw error;
         }
       }
     },
