@@ -45,8 +45,6 @@ const validateEnvVariables = (): void => {
 };
 
 const validateBookArgs = (args: AddBookArgs): void => {
-  //console.log(args);
-  //console.log(args.genres.length);
   if (args.author.length < 4) {
     throw new GraphQLError("Creating a book failed!", {
       extensions: {
@@ -100,7 +98,15 @@ const validateAddAuthorArgs = (args: AddAuthorArgs): void => {
   if (args.name.length < 4) {
     throw new GraphQLError("Creating an author failed!", {
       extensions: {
-        message: "Author name too Short!",
+        message: "Author name too short!",
+        code: "BAD_AUTHOR_NAME",
+      },
+    });
+  }
+  if (args.name.length > 170) {
+    throw new GraphQLError("Creating an author failed!", {
+      extensions: {
+        message: "Author name too long!",
         code: "BAD_AUTHOR_NAME",
       },
     });
@@ -385,9 +391,6 @@ const resolver = {
         authenticateUser(context);
         validateAddAuthorArgs(args);
         const newAuthor = new AuthorMongo({ ...args });
-        console.log("We out here in addAuthor");
-        console.log("THE ARGS: ", args);
-        console.log("New author: ", newAuthor);
         await newAuthor.save();
 
         pubsub.publish("AUTHOR_ADDED", { authorAdded: newAuthor });
@@ -395,14 +398,13 @@ const resolver = {
         return newAuthor;
       } catch (error) {
         if (
-          error instanceof GraphQLError &&
-          (error as MongoError).errors?.name?.properties?.type === "unique" &&
-          (error as MongoError).errors?.name?.properties?.path === "name"
+          (error as MongoError).errors?.name?.kind === "unique" &&
+          (error as MongoError).errors?.name?.path === "name"
         ) {
           throw new GraphQLError("Creating an author failed!", {
             extensions: {
               code: "DUPLICATE_AUTHOR_NAME",
-              error,
+              message: "Author " + args.name + " already exists.",
             },
           });
         }
@@ -412,7 +414,7 @@ const resolver = {
         throw new GraphQLError("Creating an author failed!", {
           extensions: {
             code: "INTERNAL_SERVER_ERROR",
-            error,
+            message: "Author " + args.name + " already exists.",
           },
         });
       }

@@ -8,6 +8,7 @@ const schema = new mongoose.Schema(
       required: true,
       unique: true,
       minlength: 4,
+      maxLength: 170,
     },
     born: {
       type: Number,

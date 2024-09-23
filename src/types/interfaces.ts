@@ -77,13 +77,12 @@ export type FilePromise = Promise<ImageFile>;
 export interface MongoError extends Error {
   errors: {
     name: {
-      properties: {
-        type: string;
-        path: string;
-      };
+      kind: string;
+      path: string;
     };
   };
 }
+
 export interface Context {
   currentUser: UserMongoDB;
 }
