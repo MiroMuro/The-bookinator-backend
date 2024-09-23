@@ -8,6 +8,7 @@ const schema = new mongoose.Schema({
     required: true,
     unique: true,
     minlength: 2,
+    maxlength: 150,
   },
   published: {
     type: Number,

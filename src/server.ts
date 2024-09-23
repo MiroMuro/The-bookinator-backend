@@ -29,7 +29,6 @@ require("dotenv").config();
 const initializeTestMongoServer = async () => {
   mongoTestServer = await MongoMemoryServer.create();
   const uri: string = await mongoTestServer.getUri();
-  console.log("Test MongoDB URI: ", uri);
   mongoose.connect(uri, {});
   mongoose.connection.once("open", () => {
     globalThis.gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {

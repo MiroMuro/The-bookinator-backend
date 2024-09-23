@@ -63,6 +63,14 @@ const validateBookArgs = (args: AddBookArgs): void => {
       },
     });
   }
+  if (args.title.length > 150) {
+    throw new GraphQLError("Creating a book failed!", {
+      extensions: {
+        message: "Book title too long!",
+        code: "BAD_BOOK_TITLE",
+      },
+    });
+  }
   if (!args.genres.length) {
     throw new GraphQLError("Creating a book failed!", {
       extensions: {
@@ -355,6 +363,7 @@ const resolver = {
           throw new GraphQLError("Creating a book failed!", {
             extensions: {
               code: "DUPLICATE_BOOK_TITLE",
+              message: "Book title " + args.title + " already exists.",
               error,
             },
           });
