@@ -25,7 +25,7 @@ export type AddBookArgs = {
   title: string;
   author: string;
   published: number;
-  description: string;
+  description?: string;
   genres: string[];
 };
 export type AddAuthorArgs = {
