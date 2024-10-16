@@ -32,7 +32,7 @@ const schema = new mongoose.Schema({
   },
   description: {
     type: String,
-    maxLength: 600,
+    maxLength: 1000,
   },
 });
 

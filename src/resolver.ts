@@ -93,6 +93,14 @@ const validateBookArgs = (args: AddBookArgs): void => {
       },
     });
   }
+  if (args.description.length > 1000) {
+    throw new GraphQLError("Creating a book failed!", {
+      extensions: {
+        message: "Description too long!",
+        code: "BAD_BOOK_DESCRIPTION",
+      },
+    });
+  }
 };
 const validateAddAuthorArgs = (args: AddAuthorArgs): void => {
   if (args.name.length < 4) {
